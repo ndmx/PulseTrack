@@ -1,8 +1,8 @@
 from flask import Flask, request, jsonify, render_template
 from flask_socketio import SocketIO
-from load import load_to_db
+from db.load import load_to_db
 import pandas as pd
-from db_connect import engine
+from db.connect import engine
 from analyze import generate_chart
 app = Flask(__name__, template_folder='templates')
 socketio = SocketIO(app)

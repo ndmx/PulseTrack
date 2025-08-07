@@ -30,9 +30,11 @@ Real-time approval-ratings and demographic insights platform for Nigerian politi
 ├── etl_pipeline.py        # APScheduler-driven ETL runner
 ├── extract/               # Extraction package
 │   └── __init__.py        # X/Twitter extraction
-├── transform.py           # Sentiment + approval logic
-├── load/                  # Load package + utilities
-│   ├── __init__.py        # Generic DB load helpers
+├── transform/             # Transform package
+│   └── __init__.py        # Sentiment + approval logic
+├── db/                    # Database package
+│   ├── connect.py         # SQLAlchemy engine factory
+│   ├── load.py            # Generic DB load helpers
 │   └── load_demographics.py   # One-off CSV → DB loader
 ├── data/
 │   └── state_demographics.csv # INEC + projections
@@ -148,9 +150,9 @@ streamlit plotly
 
 | Stage | Script | Detail |
 |-------|--------|--------|
-| Extract | `extract.py` | Tweepy search of keywords ("Tinubu approval" etc.), returns JSON → DataFrame |
-| Transform | `transform.py` | Lower-case, regex clean, `TextBlob` polarity → approval %, verify against registered-voter threshold |
-| Load | `load.py` | Generic helper writes DataFrame → PostgreSQL via SQLAlchemy |
+| Extract | `extract/` | Tweepy search of keywords ("Tinubu approval" etc.), returns JSON → DataFrame |
+| Transform | `transform/` | Lower-case, regex clean, `TextBlob` polarity → approval %, verify against registered-voter threshold |
+| Load | `db/` | Generic helper writes DataFrame → PostgreSQL via SQLAlchemy |
 | Schedule | `etl_pipeline.py` | APScheduler `BackgroundScheduler` every 10 min calls extract→transform→load |
 | Visualize | `app_streamlit.py` | Live gauges, trends, filters |
 
