@@ -28,12 +28,14 @@ Real-time approval-ratings and demographic insights platform for Nigerian politi
 ├── app_streamlit.py       # Main Streamlit interface
 ├── analyze.py             # Chart helpers (matplotlib)
 ├── etl_pipeline.py        # APScheduler-driven ETL runner
-├── extract.py             # X/Twitter extraction
+├── extract/               # Extraction package
+│   └── __init__.py        # X/Twitter extraction
 ├── transform.py           # Sentiment + approval logic
-├── load.py                # Generic DB load helpers
-├── db_connect.py          # SQLAlchemy engine factory
-├── load_demographics.py   # One-off CSV → DB loader
-├── state_demographics.csv # INEC + projections
+├── load/                  # Load package + utilities
+│   ├── __init__.py        # Generic DB load helpers
+│   └── load_demographics.py   # One-off CSV → DB loader
+├── data/
+│   └── state_demographics.csv # INEC + projections
 └── templates/             # Flask HTML files (if used)
 ```
 

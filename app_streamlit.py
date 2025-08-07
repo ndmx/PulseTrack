@@ -7,6 +7,7 @@ from db_connect import engine
 from sqlalchemy import text
 from load import load_to_db
 import uuid
+from pathlib import Path
 
 # Set page config
 st.set_page_config(
@@ -196,8 +197,9 @@ def load_demographics_data(state_filter: str) -> pd.DataFrame:
     except Exception:
         pass
 
-    # Fallback to CSV
-    df_csv = pd.read_csv("state_demographics.csv")
+    # Fallback to CSV (from data folder)
+    csv_path = Path(__file__).resolve().parent / "data" / "state_demographics.csv"
+    df_csv = pd.read_csv(csv_path)
     # Normalize column names if needed
     df_csv.columns = [c.strip() for c in df_csv.columns]
     if state_filter != "National":
