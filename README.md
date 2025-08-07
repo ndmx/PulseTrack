@@ -13,7 +13,6 @@ Real-time approval-ratings and demographic insights platform for Nigerian politi
 2. **Streamlit Dashboard**  
    • Live gauge + line charts per candidate  
    • National/state filters & date ranges  
-   • Choropleth map of 36 states + FCT (GeoBoundaries ADM-1)  
    • Demographic metrics from INEC 2023 voter rolls and 2025 projections
 3. **Flask API** for opinion submission (`/submit_poll`) and simple HTML fallback
 4. **Database Schema** (PostgreSQL)  
@@ -35,7 +34,6 @@ Real-time approval-ratings and demographic insights platform for Nigerian politi
 ├── db_connect.py          # SQLAlchemy engine factory
 ├── load_demographics.py   # One-off CSV → DB loader
 ├── state_demographics.csv # INEC + projections
-├── nigeria_states.geojson # Cached ADM-1 map (auto-download fallback)
 └── templates/             # Flask HTML files (if used)
 ```
 
@@ -138,7 +136,7 @@ CREATE TABLE approval_ratings (
 ```
 pandas requests tweepy psycopg2-binary sqlalchemy python-dotenv
 nltk textblob flask apscheduler matplotlib flask_socketio
-streamlit plotly geopandas fiona
+streamlit plotly
 ```
 (Install via `pip install …` or `pip install -r requirements.txt`.)
 
@@ -152,7 +150,7 @@ streamlit plotly geopandas fiona
 | Transform | `transform.py` | Lower-case, regex clean, `TextBlob` polarity → approval %, verify against registered-voter threshold |
 | Load | `load.py` | Generic helper writes DataFrame → PostgreSQL via SQLAlchemy |
 | Schedule | `etl_pipeline.py` | APScheduler `BackgroundScheduler` every 10 min calls extract→transform→load |
-| Visualize | `app_streamlit.py` | Live gauges, trends, choropleth (GeoBoundaries ADM-1) with filters |
+| Visualize | `app_streamlit.py` | Live gauges, trends, filters |
 
 ---
 
@@ -160,7 +158,6 @@ streamlit plotly geopandas fiona
 
 * **INEC 2023 registered-voter statistics** (93.47 M total) – until CVR update 2025
 * **World Bank & Statista** population projections (2.5 % CAGR) → 2025 demographics
-* **geoBoundaries v4 ADM-1** (state polygons)
 * **Twitter/X** public tweets (Academic Research API or elevated Free tier)
 * **User polls** via embedded Streamlit form
 
