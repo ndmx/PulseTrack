@@ -3,9 +3,9 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
-from db_connect import engine
+from db.connect import engine
 from sqlalchemy import text
-from load import load_to_db
+from db.load import load_to_db
 import uuid
 from pathlib import Path
 
@@ -64,7 +64,14 @@ date_ranges = {
 selected_range = st.sidebar.selectbox("Time Period", list(date_ranges.keys()))
 
 # State filter
-states_df = pd.read_sql("SELECT DISTINCT state FROM state_demographics ORDER BY state", engine)
+# Load states list for dropdown; if DB unavailable, fall back to CSV
+try:
+    states_df = pd.read_sql("SELECT DISTINCT state FROM state_demographics ORDER BY state", engine)
+except Exception:
+    from pathlib import Path
+    csv_path = Path(__file__).resolve().parent / "data" / "state_demographics.csv"
+    fallback = pd.read_csv(csv_path)
+    states_df = pd.DataFrame({"state": sorted(fallback["state"].unique())})
 selected_state = st.sidebar.selectbox(
     "Select State",
     ["National"] + states_df['state'].tolist()

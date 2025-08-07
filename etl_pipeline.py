@@ -1,8 +1,8 @@
 import pandas as pd
 from extract import extract_from_x
 from transform import transform
-from load import load_to_db, load_approvals
-from db_connect import engine
+from db.load import load_to_db, load_approvals
+from db.connect import engine
 from apscheduler.schedulers.background import BackgroundScheduler
 import time
 candidates = ['Tinubu', 'Atiku', 'Obi']  # Add more
