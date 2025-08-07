@@ -14,7 +14,7 @@ Real-time approval-ratings and demographic insights platform for Nigerian politi
    • Live gauge + line charts per candidate  
    • National/state filters & date ranges  
    • Demographic metrics from INEC 2023 voter rolls and 2025 projections
-3. **Flask API** for opinion submission (`/submit_poll`) and simple HTML fallback
+3. **Streamlit-only** UI and submission form
 4. **Database Schema** (PostgreSQL)  
    `reference_data`, `raw_inputs`, `verified_polls`, `state_demographics`, `approval_ratings`
 5. **Self-contained** – single repo, automatic virtual-env, one-command start-up
@@ -24,9 +24,7 @@ Real-time approval-ratings and demographic insights platform for Nigerian politi
 ## 🗂️ Folder Structure
 
 ```
-├── app.py                 # Minimal Flask API (legacy)
 ├── app_streamlit.py       # Main Streamlit interface
-├── analyze.py             # Chart helpers (matplotlib)
 ├── etl_pipeline.py        # APScheduler-driven ETL runner
 ├── extract/               # Extraction package
 │   └── __init__.py        # X/Twitter extraction
@@ -38,7 +36,7 @@ Real-time approval-ratings and demographic insights platform for Nigerian politi
 │   └── load_demographics.py   # One-off CSV → DB loader
 ├── data/
 │   └── state_demographics.csv # INEC + projections
-└── templates/             # Flask HTML files (if used)
+└── (no Flask templates)
 ```
 
 ---
@@ -139,7 +137,7 @@ CREATE TABLE approval_ratings (
 
 ```
 pandas requests tweepy psycopg2-binary sqlalchemy python-dotenv
-nltk textblob flask apscheduler matplotlib flask_socketio
+nltk textblob apscheduler matplotlib
 streamlit plotly
 ```
 (Install via `pip install …` or `pip install -r requirements.txt`.)
