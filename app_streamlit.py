@@ -4,12 +4,13 @@ import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
 from db_connect import engine
+from sqlalchemy import text
 from load import load_to_db
 import uuid
 
 # Set page config
 st.set_page_config(
-    page_title="Nigeria Political Approval Ratings",
+    page_title="PulseTrack",
     page_icon="🇳🇬",
     layout="wide"
 )
@@ -30,11 +31,24 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Title and description
-st.title("🇳🇬 Nigeria Political Approval Ratings")
+st.title("🇳🇬 PulseTrack")
 st.markdown("""
     Track real-time approval ratings for Nigerian political candidates based on social media sentiment 
     and user submissions. Data is updated every 10 minutes.
 """)
+
+# Ensure DB schema compatibility (add missing columns if needed)
+def ensure_schema() -> None:
+    try:
+        with engine.begin() as conn:
+            conn.execute(text(
+                "ALTER TABLE raw_inputs ADD COLUMN IF NOT EXISTS candidate VARCHAR(100)"
+            ))
+    except Exception:
+        # If engine is not available or table doesn't exist yet, skip silently
+        pass
+
+ensure_schema()
 
 # Sidebar filters
 st.sidebar.header("Filters")
@@ -162,7 +176,35 @@ with st.form("poll_form"):
 
 # Demographics section
 st.subheader("State Demographics")
-demo_data = pd.read_sql(f"SELECT * FROM state_demographics WHERE state = '{selected_state}'", engine) if selected_state != "National" else pd.read_sql("SELECT * FROM state_demographics", engine)
+
+@st.cache_data
+def load_demographics_data(state_filter: str) -> pd.DataFrame:
+    """Load demographics from DB; if unavailable, fall back to CSV.
+    When state_filter == 'National', return all states; otherwise return a single state.
+    """
+    try:
+        if state_filter != "National":
+            df = pd.read_sql(
+                "SELECT * FROM state_demographics WHERE state = %s",
+                engine,
+                params=(state_filter,),
+            )
+        else:
+            df = pd.read_sql("SELECT * FROM state_demographics", engine)
+        if not df.empty:
+            return df
+    except Exception:
+        pass
+
+    # Fallback to CSV
+    df_csv = pd.read_csv("state_demographics.csv")
+    # Normalize column names if needed
+    df_csv.columns = [c.strip() for c in df_csv.columns]
+    if state_filter != "National":
+        return df_csv[df_csv["state"].str.casefold() == state_filter.casefold()].copy()
+    return df_csv.copy()
+
+demo_data = load_demographics_data(selected_state)
 
 if selected_state != "National":
     # Single state view
@@ -174,57 +216,52 @@ if selected_state != "National":
     with col3:
         st.metric("Voter Registration Rate", f"{(demo_data['registered_voters'].iloc[0] / demo_data['voting_age_population'].iloc[0] * 100):.1f}%")
 else:
-    # National view with improved map
-    import geopandas as gpd
-    import matplotlib.pyplot as plt
+    # National view (no maps). Show national aggregates and charts from CSV/DB data.
+    st.subheader("National Overview")
 
-    @st.cache_data
-    def load_geojson():
-        """Fetch Nigeria ADM1 simplified GeoJSON from HDX and return as GeoDataFrame"""
-        import requests, json
-        url = (
-            "https://data.humdata.org/dataset/3a198c00-bb58-45e2-b6ce-ca625eb0246a/resource/"
-            "f2519d8d-7a3b-4589-9af7-9e4e8152ef58/download/geoboundaries-nga-adm1_simplified.geojson"
-        )
-        try:
-            resp = requests.get(url, timeout=15)
-            resp.raise_for_status()
-            geojson = resp.json()
-        except Exception as e:
-            st.error(f"Failed to download GeoJSON: {e}")
-            st.stop()
-        gdf = gpd.GeoDataFrame.from_features(geojson["features"])
-        # Ensure column for state name is named 'state'
-        if "shapeName" in gdf.columns:
-            gdf = gdf.rename(columns={"shapeName": "state"})
-        elif "name" in gdf.columns:
-            gdf = gdf.rename(columns={"name": "state"})
-        gdf = gdf.set_crs("EPSG:4326")
-        return gdf
-    gdf = load_geojson()
+    totals = {
+        'total_population': int(demo_data['total_population'].sum()),
+        'registered_voters': int(demo_data['registered_voters'].sum()),
+        'voting_age_population': int(demo_data['voting_age_population'].sum()),
+    }
+    rate = 0.0
+    if totals['voting_age_population']:
+        rate = totals['registered_voters'] / totals['voting_age_population'] * 100.0
 
-    # Merge with demo_data (ensure matching case)
-    demo_data['state'] = demo_data['state'].str.title()
-    gdf['state'] = gdf['state'].str.title()
-    gdf = gdf.merge(demo_data, on='state', how='left')
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.metric("Total Population", f"{totals['total_population']:,}")
+    with c2:
+        st.metric("Registered Voters", f"{totals['registered_voters']:,}")
+    with c3:
+        st.metric("Voter Registration Rate", f"{rate:.1f}%")
 
-    fig, ax = plt.subplots(figsize=(10, 10))
-    gdf.plot(ax=ax, column='registered_voters', cmap='Blues', legend=True, edgecolor='black', linewidth=1.5)
+    st.divider()
 
-    # Add country boundary outline
-    # Draw Nigeria outline
-    try:
-        country_boundary = gdf.unary_union.boundary
-        gpd.GeoSeries(country_boundary).plot(ax=ax, color='black', linewidth=1.5)
-    except Exception:
-        pass
+    # Charts based on state-level rows
+    st.subheader("Registered Voters by State")
+    state_sorted = demo_data.copy()
+    state_sorted['state'] = state_sorted['state'].astype(str)
+    state_sorted = state_sorted.sort_values('registered_voters', ascending=False)
+    fig_bar = px.bar(
+        state_sorted,
+        x='registered_voters',
+        y='state',
+        orientation='h',
+        labels={'registered_voters': 'Registered Voters', 'state': 'State'},
+        title='Registered Voters by State (Descending)'
+    )
+    fig_bar.update_layout(height=800, yaxis={'categoryorder':'total ascending'})
+    st.plotly_chart(fig_bar, use_container_width=True)
 
-    # Add state labels
-    for idx, row in gdf.iterrows():
-        ax.text(row.geometry.centroid.x, row.geometry.centroid.y, row['state'], fontsize=6, ha='center')
-
-    ax.set_title('Nigeria States Map - Registered Voters')
-    ax.axis('off')
-    st.pyplot(fig)
+    st.subheader("Population vs Registered Voters")
+    fig_scatter = px.scatter(
+        demo_data,
+        x='voting_age_population',
+        y='registered_voters',
+        hover_name='state',
+        labels={'voting_age_population': 'Voting Age Population', 'registered_voters': 'Registered Voters'}
+    )
+    st.plotly_chart(fig_scatter, use_container_width=True)
 
 # Run the Streamlit app with: streamlit run app_streamlit.py
