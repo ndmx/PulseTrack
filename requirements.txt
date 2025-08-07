@@ -12,5 +12,3 @@ matplotlib
 flask_socketio
 streamlit
 plotly
-geopandas
-fiona
