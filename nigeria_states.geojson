@@ -1,0 +1,38 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Abia",
+        "id": "NG-AB"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[7.3, 5.4], [7.8, 5.4], [7.8, 5.8], [7.3, 5.8], [7.3, 5.4]]]
+      }
+    },
+    {
+      "type": "Feature", 
+      "properties": {
+        "name": "Lagos",
+        "id": "NG-LA"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[3.1, 6.4], [3.6, 6.4], [3.6, 6.7], [3.1, 6.7], [3.1, 6.4]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "FCT",
+        "id": "NG-FC"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[7.1, 8.8], [7.6, 8.8], [7.6, 9.2], [7.1, 9.2], [7.1, 8.8]]]
+      }
+    }
+  ]
+}

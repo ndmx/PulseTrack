@@ -1,0 +1,16 @@
+pandas
+requests
+tweepy
+psycopg2-binary
+sqlalchemy
+python-dotenv
+nltk
+textblob
+flask
+apscheduler
+matplotlib
+flask_socketio
+streamlit
+plotly
+geopandas
+fiona
