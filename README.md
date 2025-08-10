@@ -85,7 +85,7 @@ $ python -m db.load_demographics
 $ ./venv/bin/python scheduler.py
 
 # 8. Launch Streamlit UI
-$ ./venv/bin/python -m streamlit run app_streamlit.py --server.port 8501 --server.headless true
+$ ./venv/bin/python -m streamlit run app_streamlit.py --server.port 8501 --server.address 0.0.0.0 --server.headless true
 ```
 
 Open http://localhost:8501 for the live dashboard.  ETL logs output to the terminal every 10 minutes.
@@ -179,6 +179,15 @@ streamlit plotly
 
 - File logs: `logs/pulsetrack.log` (rotates daily, 14-day retention)
 - DB audit: `audit_log` table stores key events (scheduler start/stop, ingestions, archives, submissions)
+
+### Streamlit Cloud deployment
+1. Ensure repo has `requirements.txt` (present)
+2. In Streamlit Cloud, create a new app → choose file `app_streamlit.py`
+3. Set secrets in the UI (Settings → Secrets):
+   - Either `DB_URL=postgresql://USER:PASS@HOST:PORT/DBNAME?sslmode=require`
+   - Or parts: `DB_USER`, `DB_PASS`, `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_SSLMODE=require`
+4. Seed demographics once locally: `python -m db.load_demographics`
+5. Ingestion: upload CSVs in-app (optional uploader) or run `python -m ingest.ingest_grok` off-platform pointed at the same DB
 
 ---
 

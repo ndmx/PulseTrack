@@ -11,8 +11,13 @@ from pathlib import Path
 from utils.logging_setup import init_logging, get_logger
 from db.audit import ensure_audit_table, log_event
 
-# Page config
-st.set_page_config(page_title="PulseTrack", page_icon="🇳🇬", layout="wide")
+# Page config (mobile-friendly)
+st.set_page_config(
+    page_title="PulseTrack",
+    page_icon="🇳🇬",
+    layout="centered",
+    initial_sidebar_state="collapsed",
+)
 
 # Logging
 init_logging()
@@ -24,8 +29,70 @@ log_event("app.start")
 st.markdown(
     """
     <style>
-    .main { padding: 2rem; }
-    .stPlotlyChart { background-color: white; border-radius: 5px; padding: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    :root {
+        --primary:#008753; /* Deep Green */
+        --bg:#FFFFFF;      /* App background (light mode) */
+        --text:#212529;    /* Text (light mode) */
+        --surface:#FFFFFF; /* Card/chart surface */
+        --cardBorder:#E9ECEF;
+        --pos:#2ECC71;     /* Positive */
+        --neg:#E74C3C;     /* Negative */
+        --neu:#95A5A6;     /* Neutral */
+        --gold:#E4B429;    /* Accent */
+    }
+    .main { padding: 1rem; }
+    html, body, .stApp, [data-testid="stAppViewContainer"], .block-container { background-color: var(--bg) !important; }
+    body { font-family: 'Arial', sans-serif; font-size: 16px; line-height: 1.5; color: var(--text); }
+    h1, h2, h3 { color: var(--text); margin-bottom: 1rem; }
+    p, span, li, label, div { color: var(--text); }
+    .stMetric { font-size: 18px; }
+    .stPlotlyChart { background-color: var(--surface); border: 1px solid var(--cardBorder); border-radius: 12px; padding: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.06); margin-bottom: 1.5rem; overflow: hidden; width: calc(100% + 10px); margin-left: -5px; margin-right: -5px; }
+    .stPlotlyChart > div { border-radius: 12px !important; overflow: hidden; }
+    .stForm { background-color: #E6F4F1; padding: 1rem; border-radius: 5px; }
+    .st-expander { margin-bottom: 1rem; }
+    .st-expander { margin-bottom: 1rem; }
+    /* Toggle styling: Blue track, green thumb */
+    /* Ensure no parent white background overrides the switch */
+    [data-testid="stToggle"],
+    [data-testid="stToggle"] label,
+    [data-testid="stToggle"] label > div {
+        background: transparent !important;
+    }
+    [data-testid="stToggle"] label div[role="switch"] {
+        background-color: #AED6F1 !important; /* Light blue track when off */
+        border-radius: 999px !important;
+        box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08);
+        transition: background-color 0.3s;
+    }
+    [data-testid="stToggle"] label div[role="switch"][aria-checked="true"] {
+        background-color: #007BFF !important; /* Dark blue track when on */
+    }
+    [data-testid="stToggle"] label div[role="switch"] > div {
+        background-color: #008753 !important; /* Green thumb */
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important;
+        border: 1px solid #FFFFFF !important; /* White border for contrast */
+        transition: transform 0.3s;
+    }
+    /* Fallback for DOM variations */
+    div[role="switch"] { background-color: #AED6F1 !important; }
+    div[role="switch"][aria-checked="true"] { background-color: #007BFF !important; }
+    div[role="switch"] > div { background-color: #008753 !important; }
+    @media (max-width: 768px) {
+        body { font-size: 14px; }
+        .stMetric { font-size: 16px; text-align: center; }
+        .stPlotlyChart { height: auto; min-height: 300px; }
+    }
+    /* Tooltips: force white text for help bubbles (BaseWeb tooltips) */
+    div[data-baseweb="tooltip"],
+    div[role="tooltip"] {
+        color: #FFFFFF !important;
+        background-color: rgba(0,0,0,0.9) !important;
+        border-radius: 6px !important;
+    }
+    div[data-baseweb="tooltip"] *,
+    div[role="tooltip"] * {
+        color: #FFFFFF !important;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -36,6 +103,31 @@ st.title("🇳🇬 PulseTrack")
 st.markdown(
     "Track real-time approval ratings for Nigerian political candidates based on social media sentiment and user submissions. Data updated via manual ingestion."
 )
+
+# Theme toggle (top-right moon icon)
+if 'dark_mode' not in st.session_state:
+    st.session_state.dark_mode = False
+top_left, top_right = st.columns([0.92, 0.08])
+with top_right:
+    if st.button("🌙", key="theme_icon", help="Toggle theme"):
+        st.session_state.dark_mode = not st.session_state.dark_mode
+dark_mode = st.session_state.dark_mode
+if dark_mode:
+    st.markdown(
+        """
+        <style>
+        :root {
+            --bg:#0F1117;      /* App background (dark mode) */
+            --text:#E9ECEF;    /* Text (dark mode) */
+            --surface:#1E1E1E; /* Card/chart surface */
+            --cardBorder:#2A2F3A;
+        }
+        html, body, .stApp, [data-testid="stAppViewContainer"], .block-container { background-color: var(--bg) !important; }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+plotly_template = 'plotly_dark' if dark_mode else 'plotly_white'
 
 
 def ensure_schema() -> None:
@@ -133,10 +225,13 @@ if not approval_data.empty:
                     mode="gauge+number+delta",
                     value=score,
                     delta={"reference": score - delta},
-                    title={"text": cand},
+                    title={"text": cand.title()},
+                    domain={"x": [0.12, 0.88], "y": [0.0, 0.76]},
                     gauge={
-                        "axis": {"range": [0, 100]},
-                        "bar": {"color": "darkblue"},
+                        "axis": {"range": [0, 100], "tickfont": {"size": 10}},
+                        "bar": {"color": "#008753", "thickness": 0.15},
+                        "bgcolor": "rgba(0,0,0,0)",
+                        "bordercolor": "rgba(0,0,0,0)",
                         "steps": [
                             {"range": [0, 30], "color": "red"},
                             {"range": [30, 70], "color": "yellow"},
@@ -145,7 +240,8 @@ if not approval_data.empty:
                     },
                 )
             )
-            fig.update_layout(height=300, margin={"l": 0, "r": 0, "t": 60, "b": 0})
+            fig.update_layout(height=280, margin={"l": 6, "r": 20, "t": 36, "b": 8})
+            fig.update_layout(template=plotly_template)
             st.plotly_chart(fig, use_container_width=True, key=f"gauge_{cand}")
 else:
     st.info("No approval data available for the last 30 days.")
@@ -167,11 +263,22 @@ if sentiment_dict:
                 values=values,
                 color=names,
                 color_discrete_map={
-                    "Positive": "#2ecc71",
-                    "Negative": "#e74c3c",
-                    "Neutral": "#95a5a6",
+                    "Positive": "#2ECC71",
+                    "Negative": "#E74C3C",
+                    "Neutral": "#95A5A6",
                 },
-                title=f"{cand} Sentiment Split",
+                title=f"{cand.title()} Sentiment Split",
+            )
+            fig_pie.update_traces(
+                hoverinfo='label+percent',
+                textinfo='percent+label',
+                marker=dict(line=dict(color='#FFFFFF', width=2)),
+                domain=dict(x=[0.08, 0.92], y=[0.12, 0.92])  # reduce visible circumference ~10%
+            )
+            fig_pie.update_layout(template=plotly_template)
+            fig_pie.update_layout(
+                margin=dict(l=20, r=35, t=40, b=40),
+                legend=dict(orientation='h', y=-0.15),
             )
             st.plotly_chart(fig_pie, use_container_width=True, key=f"pie_{cand}")
 
@@ -206,20 +313,32 @@ if not trend_source.empty:
         .mean()
         .reset_index()
     )
+    # Capitalize candidate labels for legend/readability
+    if 'candidate' in monthly.columns:
+        monthly['candidate'] = monthly['candidate'].astype(str).str.title()
     if monthly.empty:
         st.info("No trend data available yet.")
     else:
+        candidate_colors = {"Obi": "#008753", "Tinubu": "#007BFF", "Atiku": "#E4B429"}
         fig = px.line(
             monthly,
             x="timestamp",
             y="rating_score",
             color="candidate",
             title="Approval Ratings Over Time (All Data)",
+            color_discrete_map=candidate_colors,
         )
+        fig.update_traces(line=dict(width=3))
         fig.update_layout(
             xaxis_title="Month",
             yaxis_title="Approval Rating (%)",
             hovermode="x unified",
+            xaxis_rangeslider_visible=True,
+            xaxis_rangeslider_thickness=0.08,
+            template=plotly_template,
+            margin=dict(l=20, r=30, t=60, b=120),
+            xaxis=dict(domain=[0.0, 0.90]),
+            legend=dict(orientation='h', y=-0.40, x=0.5, xanchor='center')
         )
         st.plotly_chart(fig, use_container_width=True, key="trend_alltime")
 else:
@@ -354,9 +473,20 @@ else:
         y="state",
         orientation="h",
         color="political_affiliation",
+        color_discrete_map={
+            "LP": "#008753",    # green
+            "APC": "#F1C40F",   # yellow
+            "PDP": "#007BFF",   # blue
+            "NNPP": "#E74C3C",  # red
+        },
         title="Registered Voters by State (Descending)",
     )
-    fig_bar.update_layout(height=800)
+    fig_bar.update_layout(
+        height=600,
+        template=plotly_template,
+        margin=dict(l=20, r=60, t=60, b=100),
+        legend=dict(orientation='h', x=1.0, xanchor='right', y=-0.18, yanchor='top')
+    )
     st.plotly_chart(fig_bar, use_container_width=True, key="bar_registered_by_state")
 
 
