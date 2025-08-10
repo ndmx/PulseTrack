@@ -11,9 +11,10 @@ Real-time approval-ratings and demographic insights platform for Nigerian politi
    • Transform: Duplicate removal, text cleaning, TextBlob sentiment → approval score, voter-threshold verification, rating deltas  
    • Load: Writes raw, verified and time-series approval data into PostgreSQL
 2. **Streamlit Dashboard**  
-   • Live gauge + line charts per candidate  
-   • National/state filters & date ranges  
-   • Demographic metrics from INEC 2023 voter rolls and 2025 projections
+   • Live gauges (Current Approval Ratings) over last 30 days  
+   • Approval Trends line chart over all-time  
+   • Sentiment Breakdown (latest)  
+   • Demographics: National overview by default; optional multi-select for states
 3. **Streamlit-only** UI and submission form
 4. **Database Schema** (PostgreSQL)  
    `reference_data`, `raw_inputs`, `verified_polls`, `state_demographics`, `approval_ratings`
@@ -25,7 +26,7 @@ Real-time approval-ratings and demographic insights platform for Nigerian politi
 
 ```
 ├── app_streamlit.py       # Main Streamlit interface
-├── etl_pipeline.py        # APScheduler-driven ETL runner
+├── scheduler.py           # APScheduler-driven ingestion runner
 ├── extract/               # Extraction package
 │   └── __init__.py        # X/Twitter extraction
 ├── transform/             # Transform package
@@ -33,10 +34,16 @@ Real-time approval-ratings and demographic insights platform for Nigerian politi
 ├── db/                    # Database package
 │   ├── connect.py         # SQLAlchemy engine factory
 │   ├── load.py            # Generic DB load helpers
-│   └── load_demographics.py   # One-off CSV → DB loader
+│   ├── load_demographics.py   # One-off CSV → DB loader
+│   └── audit.py           # Audit event log helpers (DB)
 ├── data/
 │   └── state_demographics.csv # INEC + projections
-└── (no Flask templates)
+├── ingest/
+│   └── ingest_grok.py     # CSV ingestion (watchdog or batch)
+├── utils/
+│   ├── logging_setup.py   # Centralized logging with rotation
+│   └── __init__.py
+└── logs/                  # Rotating log files (gitignored)
 ```
 
 ---
@@ -71,11 +78,14 @@ DB_NAME=election_db
 $ psql -d election_db -f sql/create_tables.sql   # or run the SQL snippet in README
 $ python load_demographics.py
 
-# 6. Launch the ETL in one terminal
-$ python etl_pipeline.py
+# 6. Seed demographics (one time)
+$ python -m db.load_demographics
 
-# 7. Launch Streamlit UI in another
-$ streamlit run app_streamlit.py
+# 7. Start scheduler (optional)
+$ ./venv/bin/python scheduler.py
+
+# 8. Launch Streamlit UI
+$ ./venv/bin/python -m streamlit run app_streamlit.py --server.port 8501 --server.headless true
 ```
 
 Open http://localhost:8501 for the live dashboard.  ETL logs output to the terminal every 10 minutes.
@@ -151,8 +161,8 @@ streamlit plotly
 | Extract | `extract/` | Tweepy search of keywords ("Tinubu approval" etc.), returns JSON → DataFrame |
 | Transform | `transform/` | Lower-case, regex clean, `TextBlob` polarity → approval %, verify against registered-voter threshold |
 | Load | `db/` | Generic helper writes DataFrame → PostgreSQL via SQLAlchemy |
-| Schedule | `etl_pipeline.py` | APScheduler `BackgroundScheduler` every 10 min calls extract→transform→load |
-| Visualize | `app_streamlit.py` | Live gauges, trends, filters |
+| Schedule | `scheduler.py` | APScheduler: every 10 min calls ingestion |
+| Visualize | `app_streamlit.py` | Live gauges (30d), trends (all-time), demographics toggle |
 
 ---
 
@@ -165,10 +175,16 @@ streamlit plotly
 
 ---
 
+## 📝 Logging & Audit
+
+- File logs: `logs/pulsetrack.log` (rotates daily, 14-day retention)
+- DB audit: `audit_log` table stores key events (scheduler start/stop, ingestions, archives, submissions)
+
+---
+
 ## 🛡️ License
 
 Source code: MIT.  
-Boundary data: CC-BY 4.0 (© geoBoundaries).  
 INEC statistics © Independent National Electoral Commission (public domain).
 
 ---

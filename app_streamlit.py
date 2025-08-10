@@ -8,188 +8,257 @@ from sqlalchemy import text
 from db.load import load_to_db
 import uuid
 from pathlib import Path
+from utils.logging_setup import init_logging, get_logger
+from db.audit import ensure_audit_table, log_event
 
-# Set page config
-st.set_page_config(
-    page_title="PulseTrack",
-    page_icon="🇳🇬",
-    layout="wide"
+# Page config
+st.set_page_config(page_title="PulseTrack", page_icon="🇳🇬", layout="wide")
+
+# Logging
+init_logging()
+logger = get_logger(__name__)
+ensure_audit_table()
+log_event("app.start")
+
+# CSS
+st.markdown(
+    """
+    <style>
+    .main { padding: 2rem; }
+    .stPlotlyChart { background-color: white; border-radius: 5px; padding: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    </style>
+    """,
+    unsafe_allow_html=True,
 )
 
-# Add custom CSS
-st.markdown("""
-    <style>
-    .main {
-        padding: 2rem;
-    }
-    .stPlotlyChart {
-        background-color: white;
-        border-radius: 5px;
-        padding: 1rem;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-# Title and description
+# Title
 st.title("🇳🇬 PulseTrack")
-st.markdown("""
-    Track real-time approval ratings for Nigerian political candidates based on social media sentiment 
-    and user submissions. Data is updated every 10 minutes.
-""")
+st.markdown(
+    "Track real-time approval ratings for Nigerian political candidates based on social media sentiment and user submissions. Data updated via manual ingestion."
+)
 
-# Ensure DB schema compatibility (add missing columns if needed)
+
 def ensure_schema() -> None:
     try:
         with engine.begin() as conn:
-            conn.execute(text(
-                "ALTER TABLE raw_inputs ADD COLUMN IF NOT EXISTS candidate VARCHAR(100)"
-            ))
+            conn.execute(
+                text(
+                    """
+                    CREATE TABLE IF NOT EXISTS sentiment_breakdown (
+                        id SERIAL PRIMARY KEY,
+                        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        candidate VARCHAR(100),
+                        positive FLOAT,
+                        negative FLOAT,
+                        neutral FLOAT,
+                        trending_phrases TEXT,
+                        headlines TEXT
+                    )
+                    """
+                )
+            )
+            conn.execute(
+                text("ALTER TABLE raw_inputs ADD COLUMN IF NOT EXISTS candidate VARCHAR(100)")
+            )
     except Exception:
-        # If engine is not available or table doesn't exist yet, skip silently
         pass
 
+
 ensure_schema()
+logger.info("Schema ensured (sentiment_breakdown, raw_inputs.candidate)")
 
-# Sidebar filters
-st.sidebar.header("Filters")
-
-# Date range filter
-date_ranges = {
-    "Last 24 hours": timedelta(days=1),
-    "Last 7 days": timedelta(days=7),
-    "Last 30 days": timedelta(days=30),
-    "All time": timedelta(days=365*10)  # Very large range
-}
-selected_range = st.sidebar.selectbox("Time Period", list(date_ranges.keys()))
-
-# State filter
-# Load states list for dropdown; if DB unavailable, fall back to CSV
+# Load states for submission/demographics
 try:
-    states_df = pd.read_sql("SELECT DISTINCT state FROM state_demographics ORDER BY state", engine)
+    states_df = pd.read_sql(
+        "SELECT DISTINCT state FROM state_demographics ORDER BY state", engine
+    )
 except Exception:
-    from pathlib import Path
     csv_path = Path(__file__).resolve().parent / "data" / "state_demographics.csv"
     fallback = pd.read_csv(csv_path)
     states_df = pd.DataFrame({"state": sorted(fallback["state"].unique())})
-selected_state = st.sidebar.selectbox(
-    "Select State",
-    ["National"] + states_df['state'].tolist()
-)
 
-# Get approval ratings data
-@st.cache_data(ttl=600)  # Cache for 10 minutes
-def load_approval_data(time_delta, state):
-    query = """
-    SELECT timestamp, candidate, rating_score, change_delta, state 
-    FROM approval_ratings 
-    WHERE timestamp >= NOW() - interval '%s seconds'
-    """
+
+@st.cache_data(ttl=600)
+def load_approval_data(time_delta: timedelta, state: str) -> pd.DataFrame:
+    query = (
+        "SELECT timestamp, candidate, rating_score, change_delta, state "
+        "FROM approval_ratings WHERE timestamp >= NOW() - interval '%s seconds'"
+    )
     if state != "National":
         query += " AND state = %s"
         params = (time_delta.total_seconds(), state)
     else:
         params = (time_delta.total_seconds(),)
-    
-    df = pd.read_sql(query, engine, params=params)
+    return pd.read_sql(query, engine, params=params)
+
+
+# Fixed period for Current Approval Ratings (last 30 days), National only
+time_period_current = timedelta(days=30)
+approval_data = load_approval_data(time_period_current, "National")
+
+
+@st.cache_data(ttl=600)
+def load_sentiment_data() -> dict:
+    df = pd.read_sql(
+        "SELECT * FROM sentiment_breakdown ORDER BY timestamp DESC", engine
+    )
+    if df.empty:
+        return {}
+    latest = df.groupby("candidate").first()
+    out: dict[str, dict[str, object]] = {}
+    for cand in latest.index:
+        out[cand] = {
+            "Positive": latest.loc[cand, "positive"],
+            "Negative": latest.loc[cand, "negative"],
+            "Neutral": latest.loc[cand, "neutral"],
+            "Trending Phrases": latest.loc[cand, "trending_phrases"],
+            "Headlines": latest.loc[cand, "headlines"],
+        }
+    return out
+
+
+sentiment_dict = load_sentiment_data()
+
+# Current Approval Ratings (top, full width)
+st.subheader("Current Approval Ratings")
+if not approval_data.empty:
+    latest = approval_data.sort_values("timestamp").groupby("candidate").last()
+    cols = st.columns(len(latest))
+    for i, cand in enumerate(latest.index):
+        with cols[i]:
+            score = latest.loc[cand, "rating_score"]
+            delta = latest.loc[cand, "change_delta"]
+            fig = go.Figure(
+                go.Indicator(
+                    mode="gauge+number+delta",
+                    value=score,
+                    delta={"reference": score - delta},
+                    title={"text": cand},
+                    gauge={
+                        "axis": {"range": [0, 100]},
+                        "bar": {"color": "darkblue"},
+                        "steps": [
+                            {"range": [0, 30], "color": "red"},
+                            {"range": [30, 70], "color": "yellow"},
+                            {"range": [70, 100], "color": "green"},
+                        ],
+                    },
+                )
+            )
+            fig.update_layout(height=300, margin={"l": 0, "r": 0, "t": 60, "b": 0})
+            st.plotly_chart(fig, use_container_width=True, key=f"gauge_{cand}")
+else:
+    st.info("No approval data available for the last 30 days.")
+
+# Sentiment Breakdown
+st.subheader("Sentiment Breakdown from Recent Data")
+if sentiment_dict:
+    c1, c2 = st.columns(2)
+    for i, cand in enumerate(sentiment_dict):
+        with (c1 if i % 2 == 0 else c2):
+            names = ["Positive", "Negative", "Neutral"]
+            values = [
+                sentiment_dict[cand]["Positive"],
+                sentiment_dict[cand]["Negative"],
+                sentiment_dict[cand]["Neutral"],
+            ]
+            fig_pie = px.pie(
+                names=names,
+                values=values,
+                color=names,
+                color_discrete_map={
+                    "Positive": "#2ecc71",
+                    "Negative": "#e74c3c",
+                    "Neutral": "#95a5a6",
+                },
+                title=f"{cand} Sentiment Split",
+            )
+            st.plotly_chart(fig_pie, use_container_width=True, key=f"pie_{cand}")
+
+
+    with st.expander("Key Headlines Affecting Trends"):
+        for cand in sentiment_dict:
+            st.markdown(f"**{cand}**: {sentiment_dict[cand]['Headlines']}")
+else:
+    st.info("No sentiment data available. Ingest data via ingest_grok.py.")
+
+@st.cache_data(ttl=600)
+def load_trend_all_time() -> pd.DataFrame:
+    # All-time National (includes NULL for legacy rows)
+    query = (
+        "SELECT timestamp, candidate, rating_score, state FROM approval_ratings "
+        "WHERE state = 'National' OR state IS NULL"
+    )
+    df = pd.read_sql(query, engine)
     return df
 
-# Load data based on filters
-approval_data = load_approval_data(date_ranges[selected_range], selected_state)
 
-# Create main dashboard
-col1, col2 = st.columns(2)
-
-with col1:
-    st.subheader("Current Approval Ratings")
-    if not approval_data.empty:
-        # Get latest ratings for each candidate
-        latest_ratings = approval_data.sort_values('timestamp').groupby('candidate').last()
-        
-        # Create gauge charts for each candidate
-        for candidate in latest_ratings.index:
-            score = latest_ratings.loc[candidate, 'rating_score']
-            delta = latest_ratings.loc[candidate, 'change_delta']
-            
-            fig = go.Figure(go.Indicator(
-                mode = "gauge+number+delta",
-                value = score,
-                delta = {'reference': score - delta, 'relative': True},
-                title = {'text': candidate},
-                gauge = {
-                    'axis': {'range': [0, 100]},
-                    'bar': {'color': "darkblue"},
-                    'steps': [
-                        {'range': [0, 30], 'color': "red"},
-                        {'range': [30, 70], 'color': "yellow"},
-                        {'range': [70, 100], 'color': "green"}
-                    ]
-                }
-            ))
-            fig.update_layout(height=200)
-            st.plotly_chart(fig, use_container_width=True)
+# Trends (ignore time filter; always all available data; line chart)
+st.subheader("Approval Trends")
+trend_source = load_trend_all_time()
+if not trend_source.empty:
+    trend_df = trend_source.copy()
+    trend_df["timestamp"] = pd.to_datetime(trend_df["timestamp"], errors="coerce")
+    trend_df = trend_df.dropna(subset=["timestamp"])  # guard against bad dates
+    monthly = (
+        trend_df
+        .groupby(["candidate", pd.Grouper(key="timestamp", freq="MS")])["rating_score"]
+        .mean()
+        .reset_index()
+    )
+    if monthly.empty:
+        st.info("No trend data available yet.")
     else:
-        st.info("No approval data available for the selected filters.")
-
-with col2:
-    st.subheader("Approval Trends")
-    if not approval_data.empty:
-        # Create line chart
         fig = px.line(
-            approval_data,
-            x='timestamp',
-            y='rating_score',
-            color='candidate',
-            title=f"Approval Ratings Over Time ({selected_state})"
+            monthly,
+            x="timestamp",
+            y="rating_score",
+            color="candidate",
+            title="Approval Ratings Over Time (All Data)",
         )
         fig.update_layout(
-            xaxis_title="Date",
+            xaxis_title="Month",
             yaxis_title="Approval Rating (%)",
-            hovermode='x unified'
+            hovermode="x unified",
         )
-        st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.info("No trend data available for the selected filters.")
+        st.plotly_chart(fig, use_container_width=True, key="trend_alltime")
+else:
+    st.info("No trend data available yet.")
 
-# User submission form
+# Submission form
 st.subheader("Submit Your Opinion")
 with st.form("poll_form"):
     col1, col2 = st.columns(2)
-    
     with col1:
         candidate = st.selectbox("Select Candidate", ["Tinubu", "Atiku", "Obi"])
-        location = st.selectbox("Your State", states_df['state'].tolist())
-    
+        location = st.selectbox("Your State", states_df["state"].tolist())
     with col2:
         response = st.text_area("Your Opinion", height=100)
-        
     submitted = st.form_submit_button("Submit")
-    
     if submitted:
         if response.strip():
-            # Create DataFrame for submission
-            df = pd.DataFrame([{
-                'source': 'user_form',
-                'content': response,
-                'user_id': str(uuid.uuid4()),
-                'location': location,
-                'candidate': candidate
-            }])
-            
-            # Save to database
-            load_to_db(df, 'raw_inputs')
+            df = pd.DataFrame(
+                [
+                    {
+                        "source": "user_form",
+                        "content": response,
+                        "user_id": str(uuid.uuid4()),
+                        "location": location,
+                        "candidate": candidate,
+                    }
+                ]
+            )
+            load_to_db(df, "raw_inputs")
             st.success("Thank you for your submission! Your opinion has been recorded.")
+            log_event("submission.saved", subject=candidate, details=f"state={location}")
         else:
             st.error("Please enter your opinion before submitting.")
 
-# Demographics section
+# Demographics (toggle-based)
 st.subheader("State Demographics")
 
 @st.cache_data
 def load_demographics_data(state_filter: str) -> pd.DataFrame:
-    """Load demographics from DB; if unavailable, fall back to CSV.
-    When state_filter == 'National', return all states; otherwise return a single state.
-    """
     try:
         if state_filter != "National":
             df = pd.read_sql(
@@ -204,73 +273,90 @@ def load_demographics_data(state_filter: str) -> pd.DataFrame:
     except Exception:
         pass
 
-    # Fallback to CSV (from data folder)
     csv_path = Path(__file__).resolve().parent / "data" / "state_demographics.csv"
     df_csv = pd.read_csv(csv_path)
-    # Normalize column names if needed
     df_csv.columns = [c.strip() for c in df_csv.columns]
     if state_filter != "National":
         return df_csv[df_csv["state"].str.casefold() == state_filter.casefold()].copy()
     return df_csv.copy()
 
-demo_data = load_demographics_data(selected_state)
+# Toggle to switch between National and State view
+view_state = st.toggle("View Specific States", value=False)
 
-if selected_state != "National":
-    # Single state view
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("Total Population", f"{demo_data['total_population'].iloc[0]:,}")
-    with col2:
-        st.metric("Registered Voters", f"{demo_data['registered_voters'].iloc[0]:,}")
-    with col3:
-        st.metric("Voter Registration Rate", f"{(demo_data['registered_voters'].iloc[0] / demo_data['voting_age_population'].iloc[0] * 100):.1f}%")
+if view_state:
+    selected_states = st.multiselect(
+        "Select States",
+        states_df["state"].tolist(),
+        placeholder="Choose states to view",
+        help="Scroll to select multiple states.",
+    )
+    if selected_states:
+        for state in selected_states:
+            st.markdown(f"### {state}")
+            demo_data = load_demographics_data(state)
+            if not demo_data.empty:
+                c1, c2, c3 = st.columns(3)
+                with c1:
+                    st.metric("Total Population", f"{demo_data['total_population'].iloc[0]:,}")
+                with c2:
+                    st.metric("Registered Voters", f"{demo_data['registered_voters'].iloc[0]:,}")
+                with c3:
+                    st.metric(
+                        "Voter Registration Rate",
+                        f"{(demo_data['registered_voters'].iloc[0] / demo_data['voting_age_population'].iloc[0] * 100):.1f}%",
+                    )
+            else:
+                st.info(f"No data for {state}.")
+    else:
+        st.info("Select states to view details.")
 else:
-    # National view (no maps). Show national aggregates and charts from CSV/DB data.
     st.subheader("National Overview")
 
-    totals = {
-        'total_population': int(demo_data['total_population'].sum()),
-        'registered_voters': int(demo_data['registered_voters'].sum()),
-        'voting_age_population': int(demo_data['voting_age_population'].sum()),
-    }
-    rate = 0.0
-    if totals['voting_age_population']:
-        rate = totals['registered_voters'] / totals['voting_age_population'] * 100.0
+    @st.cache_data(ttl=3600)
+    def load_national_totals() -> pd.Series:
+        try:
+            return pd.read_sql(
+                "SELECT SUM(total_population) AS total_population, "
+                "SUM(voting_age_population) AS voting_age_population, "
+                "SUM(registered_voters) AS registered_voters FROM state_demographics",
+                engine,
+            ).iloc[0]
+        except Exception:
+            df = pd.read_csv(Path(__file__).resolve().parent / "data" / "state_demographics.csv")
+            return pd.Series(
+                {
+                    "total_population": int(df["total_population"].sum()),
+                    "voting_age_population": int(df["voting_age_population"].sum()),
+                    "registered_voters": int(df["registered_voters"].sum()),
+                }
+            )
 
+    totals = load_national_totals()
+    rate = (
+        totals["registered_voters"] / totals["voting_age_population"] * 100
+        if totals["voting_age_population"]
+        else 0
+    )
     c1, c2, c3 = st.columns(3)
     with c1:
-        st.metric("Total Population", f"{totals['total_population']:,}")
+        st.metric("Total Population", f"{int(totals['total_population']):,}")
     with c2:
-        st.metric("Registered Voters", f"{totals['registered_voters']:,}")
+        st.metric("Registered Voters", f"{int(totals['registered_voters']):,}")
     with c3:
         st.metric("Voter Registration Rate", f"{rate:.1f}%")
 
-    st.divider()
-
-    # Charts based on state-level rows
     st.subheader("Registered Voters by State")
-    state_sorted = demo_data.copy()
-    state_sorted['state'] = state_sorted['state'].astype(str)
-    state_sorted = state_sorted.sort_values('registered_voters', ascending=False)
+    demo_data = load_demographics_data("National")
+    state_sorted = demo_data.sort_values("registered_voters", ascending=False)
     fig_bar = px.bar(
         state_sorted,
-        x='registered_voters',
-        y='state',
-        orientation='h',
-        labels={'registered_voters': 'Registered Voters', 'state': 'State'},
-        title='Registered Voters by State (Descending)'
+        x="registered_voters",
+        y="state",
+        orientation="h",
+        color="political_affiliation",
+        title="Registered Voters by State (Descending)",
     )
-    fig_bar.update_layout(height=800, yaxis={'categoryorder':'total ascending'})
-    st.plotly_chart(fig_bar, use_container_width=True)
+    fig_bar.update_layout(height=800)
+    st.plotly_chart(fig_bar, use_container_width=True, key="bar_registered_by_state")
 
-    st.subheader("Population vs Registered Voters")
-    fig_scatter = px.scatter(
-        demo_data,
-        x='voting_age_population',
-        y='registered_voters',
-        hover_name='state',
-        labels={'voting_age_population': 'Voting Age Population', 'registered_voters': 'Registered Voters'}
-    )
-    st.plotly_chart(fig_scatter, use_container_width=True)
 
-# Run the Streamlit app with: streamlit run app_streamlit.py
