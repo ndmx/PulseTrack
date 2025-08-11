@@ -1,8 +1,8 @@
 import React, { useState } from "react"
-import { useTheme } from "./theme"
 import { ApprovalCards } from "./components/ApprovalCards"
 import { SentimentPies } from "./components/SentimentPies"
 import { Headlines } from "./components/Headlines"
+import { SubmitOpinion } from "./components/SubmitOpinion"
 import { useTrendsAllTime } from "./hooks/useTrendsAllTime"
 import { useDemographics } from "./hooks/useDemographics"
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from "recharts"
@@ -22,6 +22,11 @@ export default function App() {
       <section>
         <h2>Current Approval (30 days, National)</h2>
         <ApprovalCards />
+      </section>
+
+      <section>
+        <h2>Submit Your Opinion</h2>
+        <SubmitOpinion />
       </section>
 
       <section>

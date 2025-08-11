@@ -5,9 +5,10 @@ import { useSentiment } from "../hooks/useSentiment"
 const COLORS = { Positive: "#2ECC71", Negative: "#E74C3C", Neutral: "#95A5A6" } as const
 
 export const SentimentPies: React.FC = () => {
-  const { data, isLoading, isError } = useSentiment()
+  const { data, isLoading, isError, refetch } = useSentiment() as any
   if (isLoading) return <p>Loading...</p>
-  if (isError || !data) return <p>Error loading sentiment</p>
+  if (isError) return <p>Error loading sentiment. <button onClick={() => refetch()}>Retry</button></p>
+  if (!data) return <p>No sentiment data.</p>
   const latestPerCand: Record<string, any> = {}
   for (const row of data) if (!latestPerCand[row.candidate]) latestPerCand[row.candidate] = row
   const cands = Object.keys(latestPerCand)

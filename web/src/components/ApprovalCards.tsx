@@ -2,9 +2,10 @@ import React from "react"
 import { useApprovalData } from "../hooks/useApprovalData"
 
 export const ApprovalCards: React.FC = () => {
-  const { data, isLoading, isError } = useApprovalData()
+  const { data, isLoading, isError, refetch } = useApprovalData() as any
   if (isLoading) return <p>Loading...</p>
-  if (isError || !data) return <p>Error loading approvals</p>
+  if (isError) return <p>Error loading approvals. <button onClick={() => refetch()}>Retry</button></p>
+  if (!data) return <p>No data.</p>
   const latestByCand = new Map<string, any>()
   for (const row of data) latestByCand.set(row.candidate, row)
   return (
