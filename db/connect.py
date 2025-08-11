@@ -1,6 +1,6 @@
 import os
 from typing import Optional, Tuple
-from urllib.parse import urlparse, parse_qs, urlunparse
+from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 import socket
 from sqlalchemy import create_engine
 
@@ -48,7 +48,8 @@ parsed = urlparse(db_url)
 host = parsed.hostname or ''
 port = parsed.port or 5432
 
-# Force IPv4 by resolving hostname to IPv4 and supplying hostaddr via query param
+# Force IPv4 by resolving hostname to IPv4 and supplying hostaddr via query param,
+# and append safe defaults for timeouts to avoid Cloud hangs
 hostaddr = None
 try:
     # getaddrinfo with AF_INET ensures IPv4
@@ -58,21 +59,24 @@ try:
 except Exception:
     hostaddr = None
 
+q = parse_qs(parsed.query)
 if hostaddr:
-    # Append hostaddr to query preserving existing params
-    q = parse_qs(parsed.query)
     q['hostaddr'] = [hostaddr]
-    # rebuild query string
-    query_parts = []
-    for k, vals in q.items():
-        for v in vals:
-            query_parts.append(f"{k}={v}")
-    new_query = '&'.join(query_parts)
-    # Rebuild URL with same user/pass/host (hostname kept for SSL cert), but added hostaddr
-    parsed = parsed._replace(query=new_query)
-    db_url = urlunparse(parsed)
 
-engine = create_engine(db_url)
+# Add connect_timeout (10s) and a server-side statement_timeout (10s) if not present
+q.setdefault('connect_timeout', ['10'])
+opts = q.get('options', [''])[0]
+if 'statement_timeout' not in opts:
+    # Append statement_timeout, preserving existing options
+    opts = (opts + ' ' if opts else '') + '-c statement_timeout=10000'
+    q['options'] = [opts]
+
+# Rebuild query string
+new_query = urlencode(q, doseq=True)
+parsed = parsed._replace(query=new_query)
+db_url = urlunparse(parsed)
+
+engine = create_engine(db_url, pool_pre_ping=True)
 
 # Emit a masked one-line summary to logs for diagnosis without leaking secrets
 try:
