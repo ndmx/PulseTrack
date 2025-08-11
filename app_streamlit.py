@@ -1,4 +1,5 @@
 import streamlit as st
+import sqlalchemy
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -22,6 +23,12 @@ st.set_page_config(
 # Logging
 init_logging()
 logger = get_logger(__name__)
+try:
+    with engine.connect() as conn:
+        conn.execute(sqlalchemy.text("SELECT 1"))
+except Exception as e:
+    logger.error("DB connectivity check failed")
+    st.error("Database connection failed. Please verify Streamlit secrets (DB_URL).")
 ensure_audit_table()
 log_event("app.start")
 
@@ -341,8 +348,8 @@ if not trend_source.empty:
             legend=dict(orientation='h', y=-0.40, x=0.5, xanchor='center')
         )
         st.plotly_chart(fig, use_container_width=True, key="trend_alltime")
-else:
-    st.info("No trend data available yet.")
+    else:
+        st.info("No trend data available yet.")
 
 # Submission form
 st.subheader("Submit Your Opinion")
