@@ -61,12 +61,12 @@ export default function App() {
                 obi: row.obi && row.obi.length ? row.obi.reduce((x, y) => x + y, 0) / row.obi.length : undefined,
               }))
             return (
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data} margin={{ top: 10, right: 20, bottom: 10, left: 10 }}>
+              <ResponsiveContainer width="99%" height="100%">
+                <LineChart data={data} margin={{ top: 10, right: 56, bottom: 36, left: 16 }}>
                   <XAxis dataKey="month" />
                   <YAxis domain={[0, 100]} />
                   <Tooltip />
-                  <Legend />
+                  <Legend verticalAlign="bottom" align="center" wrapperStyle={{ paddingTop: 8 }} />
                   <Line name="Tinubu" type="monotone" dataKey="tinubu" stroke="#007BFF" dot={false} connectNulls />
                   <Line name="Obi" type="monotone" dataKey="obi" stroke="#008753" dot={false} connectNulls />
                 </LineChart>
