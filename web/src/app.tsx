@@ -25,6 +25,11 @@ export default function App() {
       </section>
 
       <section>
+        <h2>Key Headlines Affecting Trends</h2>
+        <Headlines />
+      </section>
+
+      <section>
         <h2>Approval Trends (All Time)</h2>
         <div style={{ height: 320 }}>
           {trends.isLoading ? <p>Loading...</p> : trends.isError ? <p>Error</p> : (
