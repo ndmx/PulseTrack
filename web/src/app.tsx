@@ -6,6 +6,7 @@ import { Headlines } from "./components/Headlines"
 import { useTrendsAllTime } from "./hooks/useTrendsAllTime"
 import { useDemographics } from "./hooks/useDemographics"
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from "recharts"
+import dayjs from "dayjs"
 
 export default function App() {
   const trends = useTrendsAllTime()
@@ -36,19 +37,42 @@ export default function App() {
       <section>
         <h2>Approval Trends (All Time)</h2>
         <div style={{ height: 360 }}>
-          {trends.isLoading ? <p>Loading...</p> : trends.isError ? <p>Error</p> : (
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart>
-                <XAxis dataKey="timestamp" hide />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                {/* Separate series per candidate */}
-                <Line name="Tinubu" type="monotone" dataKey="rating_score" stroke="#007BFF" dot={false} data={trends.data?.filter((d: any) => (d.candidate || "").toLowerCase() === "tinubu")} />
-                <Line name="Obi" type="monotone" dataKey="rating_score" stroke="#008753" dot={false} data={trends.data?.filter((d: any) => (d.candidate || "").toLowerCase() === "obi")} />
-              </LineChart>
-            </ResponsiveContainer>
-          )}
+          {trends.isLoading ? <p>Loading...</p> : trends.isError ? <p>Error</p> : (() => {
+            // Aggregate monthly averages and merge into single data array
+            const bucket: Record<string, { month: string; tinubu?: number[]; obi?: number[] }> = {}
+            for (const r of trends.data || []) {
+              const m = dayjs(r.timestamp).startOf('month').format('YYYY-MM')
+              const key = m
+              if (!bucket[key]) bucket[key] = { month: m }
+              const cand = (r.candidate || '').toLowerCase()
+              if (cand === 'tinubu') {
+                if (!bucket[key].tinubu) bucket[key].tinubu = []
+                bucket[key].tinubu!.push(Number(r.rating_score) || 0)
+              } else if (cand === 'obi') {
+                if (!bucket[key].obi) bucket[key].obi = []
+                bucket[key].obi!.push(Number(r.rating_score) || 0)
+              }
+            }
+            const data = Object.values(bucket)
+              .sort((a, b) => a.month.localeCompare(b.month))
+              .map(row => ({
+                month: row.month,
+                tinubu: row.tinubu && row.tinubu.length ? row.tinubu.reduce((x, y) => x + y, 0) / row.tinubu.length : undefined,
+                obi: row.obi && row.obi.length ? row.obi.reduce((x, y) => x + y, 0) / row.obi.length : undefined,
+              }))
+            return (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={data} margin={{ top: 10, right: 20, bottom: 10, left: 10 }}>
+                  <XAxis dataKey="month" />
+                  <YAxis domain={[0, 100]} />
+                  <Tooltip />
+                  <Legend />
+                  <Line name="Tinubu" type="monotone" dataKey="tinubu" stroke="#007BFF" dot={false} connectNulls />
+                  <Line name="Obi" type="monotone" dataKey="obi" stroke="#008753" dot={false} connectNulls />
+                </LineChart>
+              </ResponsiveContainer>
+            )
+          })()}
         </div>
       </section>
 
