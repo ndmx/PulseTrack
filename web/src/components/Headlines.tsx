@@ -2,9 +2,10 @@ import React from "react"
 import { useSentiment } from "../hooks/useSentiment"
 
 export const Headlines: React.FC = () => {
-  const { data, isLoading, isError } = useSentiment()
+  const { data, isLoading, isError, refetch } = useSentiment() as any
   if (isLoading) return <p>Loading...</p>
-  if (isError || !data?.length) return <p>No sentiment data available.</p>
+  if (isError) return <p>Error loading headlines. <button onClick={() => refetch()}>Retry</button></p>
+  if (!data?.length) return <p>No sentiment data available.</p>
   const firstByCand = new Map<string, any>()
   for (const row of data) if (!firstByCand.has(row.candidate)) firstByCand.set(row.candidate, row)
   return (

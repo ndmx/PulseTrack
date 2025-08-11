@@ -14,5 +14,7 @@ export function useDemographics() {
     },
     refetchInterval: 3600000,
     staleTime: 1800000,
+    retry: 2,
+    refetchOnWindowFocus: false,
   })
 }
