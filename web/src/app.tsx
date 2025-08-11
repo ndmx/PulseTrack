@@ -12,7 +12,7 @@ export default function App() {
   return (
     <div style={{ padding: 16, fontFamily: "-apple-system, system-ui, Arial" }}>
       <h1>🇳🇬 PulseTrack</h1>
-      <p>React UI (Supabase + React Query). Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your host.</p>
+      
 
       <section>
         <h2>Current Approval (30 days, National)</h2>
