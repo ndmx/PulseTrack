@@ -310,7 +310,9 @@ def load_trend_all_time() -> pd.DataFrame:
 # Trends (ignore time filter; always all available data; line chart)
 st.subheader("Approval Trends")
 trend_source = load_trend_all_time()
-if not trend_source.empty:
+if trend_source.empty:
+    st.info("No trend data available yet.")
+else:
     trend_df = trend_source.copy()
     trend_df["timestamp"] = pd.to_datetime(trend_df["timestamp"], errors="coerce")
     trend_df = trend_df.dropna(subset=["timestamp"])  # guard against bad dates
@@ -348,8 +350,6 @@ if not trend_source.empty:
             legend=dict(orientation='h', y=-0.40, x=0.5, xanchor='center')
         )
         st.plotly_chart(fig, use_container_width=True, key="trend_alltime")
-    else:
-        st.info("No trend data available yet.")
 
 # Submission form
 st.subheader("Submit Your Opinion")
@@ -380,7 +380,6 @@ with st.form("poll_form"):
         else:
             st.error("Please enter your opinion before submitting.")
 
-# Demographics (toggle-based)
 st.subheader("State Demographics")
 
 @st.cache_data
