@@ -1,13 +1,11 @@
 import React from "react"
-import { useApprovalData } from "./hooks/useApprovalData"
-import { useSentiment } from "./hooks/useSentiment"
+import { ApprovalCards } from "./components/ApprovalCards"
+import { SentimentPies } from "./components/SentimentPies"
 import { useTrendsAllTime } from "./hooks/useTrendsAllTime"
 import { useDemographics } from "./hooks/useDemographics"
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from "recharts"
 
 export default function App() {
-  const approval = useApprovalData()
-  const sentiment = useSentiment()
   const trends = useTrendsAllTime()
   const demo = useDemographics()
 
@@ -18,20 +16,12 @@ export default function App() {
 
       <section>
         <h2>Current Approval (30 days, National)</h2>
-        {approval.isLoading ? <p>Loading...</p> : approval.isError ? <p>Error</p> : (
-          <pre style={{ background: "#f7f7f9", padding: 12, borderRadius: 8, overflow: "auto" }}>
-            {JSON.stringify(approval.data?.slice(-6), null, 2)}
-          </pre>
-        )}
+        <ApprovalCards />
       </section>
 
       <section>
         <h2>Sentiment Breakdown (Latest)</h2>
-        {sentiment.isLoading ? <p>Loading...</p> : sentiment.isError ? <p>Error</p> : (
-          <pre style={{ background: "#f7f7f9", padding: 12, borderRadius: 8, overflow: "auto" }}>
-            {JSON.stringify(sentiment.data?.slice(0, 6), null, 2)}
-          </pre>
-        )}
+        <SentimentPies />
       </section>
 
       <section>
