@@ -23,10 +23,12 @@ st.set_page_config(
 # Logging
 init_logging()
 logger = get_logger(__name__)
+db_ok = True
 try:
     with engine.connect() as conn:
         conn.execute(sqlalchemy.text("SELECT 1"))
-except Exception as e:
+except Exception:
+    db_ok = False
     logger.error("DB connectivity check failed")
     st.error("Database connection failed. Please verify Streamlit secrets (DB_URL).")
 ensure_audit_table()
@@ -193,11 +195,15 @@ def load_approval_data(time_delta: timedelta, state: str) -> pd.DataFrame:
 
 # Fixed period for Current Approval Ratings (last 30 days), National only
 time_period_current = timedelta(days=30)
-approval_data = load_approval_data(time_period_current, "National")
+approval_data = (
+    load_approval_data(time_period_current, "National") if db_ok else pd.DataFrame()
+)
 
 
 @st.cache_data(ttl=600)
 def load_sentiment_data() -> dict:
+    if not db_ok:
+        return {}
     df = pd.read_sql(
         "SELECT * FROM sentiment_breakdown ORDER BY timestamp DESC", engine
     )
@@ -298,6 +304,8 @@ else:
 
 @st.cache_data(ttl=600)
 def load_trend_all_time() -> pd.DataFrame:
+    if not db_ok:
+        return pd.DataFrame()
     # All-time National (includes NULL for legacy rows)
     query = (
         "SELECT timestamp, candidate, rating_score, state FROM approval_ratings "
