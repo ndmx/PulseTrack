@@ -132,7 +132,7 @@ export default function App() {
                 <div style={{ height: 420 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={[...(demo.data || [])].sort((a: any,b: any)=> Number(b.registered_voters||0)-Number(a.registered_voters||0))} layout="vertical" margin={{ left: 40, right: 20, top: 10, bottom: 10 }}>
-                      <XAxis type="number" />
+                      <XAxis type="number" tickFormatter={(v: number) => v >= 1_000_000 ? `${Math.round(v/1_000_000)}M` : v.toLocaleString()} />
                       <YAxis dataKey="state" type="category" width={100} />
                       <Tooltip />
                       <Bar dataKey="registered_voters" fill="#007BFF" />
