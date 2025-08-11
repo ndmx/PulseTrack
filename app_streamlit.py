@@ -27,9 +27,12 @@ db_ok = True
 try:
     with engine.connect() as conn:
         conn.execute(sqlalchemy.text("SELECT 1"))
-except Exception:
+except Exception as e:
     db_ok = False
-    logger.error("DB connectivity check failed")
+    # Include exception details in logs to diagnose on Streamlit Cloud
+    err_name = type(e).__name__
+    err_msg = str(e)
+    logger.error(f"DB connectivity check failed: {err_name}: {err_msg}")
     st.error("Database connection failed. Please verify Streamlit secrets (DB_URL).")
 ensure_audit_table()
 log_event("app.start")
