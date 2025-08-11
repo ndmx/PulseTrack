@@ -15,7 +15,7 @@ export default function App() {
   const [selectedStates, setSelectedStates] = useState<string[]>([])
 
   return (
-    <div style={{ padding: 16, fontFamily: "-apple-system, system-ui, Arial", minHeight: "100vh" }}>
+    <div className="container" style={{ minHeight: "100vh" }}>
       <h1>🇳🇬 PulseTrack</h1>
       
 
