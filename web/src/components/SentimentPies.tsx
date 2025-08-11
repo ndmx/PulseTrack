@@ -12,7 +12,7 @@ export const SentimentPies: React.FC = () => {
   for (const row of data) if (!latestPerCand[row.candidate]) latestPerCand[row.candidate] = row
   const cands = Object.keys(latestPerCand)
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 12 }}>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 12 }}>
       {cands.map((cand) => {
         const r = latestPerCand[cand]
         const series = [
@@ -21,17 +21,17 @@ export const SentimentPies: React.FC = () => {
           { name: "Neutral", value: r.neutral },
         ]
         return (
-          <div key={cand} style={{ height: 320, border: "1px solid #E9ECEF", borderRadius: 12, padding: 12, background: "#fff" }}>
+          <div key={cand} style={{ height: 320, border: "1px solid #E9ECEF", borderRadius: 12, padding: 12, background: "#fff", overflow: "hidden" }}>
             <div style={{ fontWeight: 600, marginBottom: 8 }}>{cand} Sentiment</div>
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={series} dataKey="value" nameKey="name" innerRadius={60} outerRadius={90}>
+            <ResponsiveContainer width="100%" height={260}>
+              <PieChart margin={{ top: 0, right: 8, bottom: 40, left: 8 }}>
+                <Pie data={series} dataKey="value" nameKey="name" innerRadius={58} outerRadius={86}>
                   {series.map((s) => (
                     <Cell key={s.name} fill={COLORS[s.name as keyof typeof COLORS]} />
                   ))}
                 </Pie>
                 <Tooltip />
-                <Legend />
+                <Legend verticalAlign="bottom" height={28} wrapperStyle={{ overflow: 'hidden' }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
