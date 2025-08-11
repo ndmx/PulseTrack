@@ -1,17 +1,21 @@
 import React from "react"
+import { useTheme } from "./theme"
 import { ApprovalCards } from "./components/ApprovalCards"
 import { SentimentPies } from "./components/SentimentPies"
+import { Headlines } from "./components/Headlines"
 import { useTrendsAllTime } from "./hooks/useTrendsAllTime"
 import { useDemographics } from "./hooks/useDemographics"
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from "recharts"
 
 export default function App() {
+  const { darkMode, toggle } = useTheme()
   const trends = useTrendsAllTime()
   const demo = useDemographics()
 
   return (
     <div style={{ padding: 16, fontFamily: "-apple-system, system-ui, Arial" }}>
       <h1>🇳🇬 PulseTrack</h1>
+      <button onClick={() => toggle()} style={{ float: "right", marginTop: -40 }}>��</button>
       
 
       <section>
