@@ -6,18 +6,22 @@ from db.connect import engine
 
 
 def ensure_audit_table() -> None:
-    with engine.begin() as conn:
-        conn.execute(text(
-            """
-            CREATE TABLE IF NOT EXISTS audit_log (
-                id SERIAL PRIMARY KEY,
-                ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                event_type VARCHAR(64) NOT NULL,
-                subject VARCHAR(255),
-                details TEXT
-            )
-            """
-        ))
+    try:
+        with engine.begin() as conn:
+            conn.execute(text(
+                """
+                CREATE TABLE IF NOT EXISTS audit_log (
+                    id SERIAL PRIMARY KEY,
+                    ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    event_type VARCHAR(64) NOT NULL,
+                    subject VARCHAR(255),
+                    details TEXT
+                )
+                """
+            ))
+    except Exception:
+        # Avoid crashing the app if the DB is unreachable at startup
+        pass
 
 
 def log_event(event_type: str, subject: Optional[str] = None, details: Optional[str] = None) -> None:
