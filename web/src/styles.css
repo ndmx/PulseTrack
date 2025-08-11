@@ -1,0 +1,12 @@
+/* Global container padding: default for mobile, larger on wide screens */
+.container {
+  padding: 16px;
+}
+
+@media (min-width: 1200px) {
+  .container {
+    padding: 30px;
+  }
+}
+
+
