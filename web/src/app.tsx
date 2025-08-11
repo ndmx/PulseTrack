@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react"
+import React, { useState } from "react"
 import { useTheme } from "./theme"
 import { ApprovalCards } from "./components/ApprovalCards"
 import { SentimentPies } from "./components/SentimentPies"
@@ -8,18 +8,14 @@ import { useDemographics } from "./hooks/useDemographics"
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from "recharts"
 
 export default function App() {
-  const { darkMode, toggle } = useTheme()
   const trends = useTrendsAllTime()
   const demo = useDemographics()
   const [viewState, setViewState] = useState(false)
   const [selectedStates, setSelectedStates] = useState<string[]>([])
 
   return (
-    <div style={{ padding: 16, fontFamily: "-apple-system, system-ui, Arial", background: darkMode ? "#0F1117" : "#FFFFFF", color: darkMode ? "#E9ECEF" : "#212529", minHeight: "100vh" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <h1>🇳🇬 PulseTrack</h1>
-        <button onClick={toggle} title="Toggle dark/light" style={{ fontSize: 18, padding: "6px 10px", borderRadius: 8, border: "1px solid #E9ECEF", background: darkMode ? "#1E1E1E" : "#fff", color: "inherit", cursor: "pointer" }}>🌙</button>
-      </div>
+    <div style={{ padding: 16, fontFamily: "-apple-system, system-ui, Arial", minHeight: "100vh" }}>
+      <h1>🇳🇬 PulseTrack</h1>
       
 
       <section>
