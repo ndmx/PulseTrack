@@ -46,9 +46,9 @@ export default function App() {
       <section>
         <h2>Approval Trends (All Time)</h2>
         <div style={{ height: 360 }}>
-          {trends.isLoading ? <p>Loading...</p> : trends.isError ? <Notice type="error">We couldn’t load approval trends right now. Please refresh.</Notice> : (() => {
+          {trends.isLoading ? <p>Loading...</p> : trends.isError ? <Notice type="error">We couldn't load approval trends right now. Please refresh.</Notice> : (() => {
             // Aggregate monthly averages and merge into single data array
-            const bucket: Record<string, { month: string; tinubu?: number[]; obi?: number[] }> = {}
+            const bucket: Record<string, { month: string; tinubu?: number[]; obi?: number[]; atiku?: number[] }> = {}
             for (const r of trends.data || []) {
               const m = dayjs(r.timestamp).startOf('month').format('YYYY-MM')
               const key = m
@@ -60,6 +60,9 @@ export default function App() {
               } else if (cand === 'obi') {
                 if (!bucket[key].obi) bucket[key].obi = []
                 bucket[key].obi!.push(Number(r.rating_score) || 0)
+              } else if (cand === 'atiku') {
+                if (!bucket[key].atiku) bucket[key].atiku = []
+                bucket[key].atiku!.push(Number(r.rating_score) || 0)
               }
             }
             const data = Object.values(bucket)
@@ -68,6 +71,7 @@ export default function App() {
                 month: row.month,
                 tinubu: row.tinubu && row.tinubu.length ? row.tinubu.reduce((x, y) => x + y, 0) / row.tinubu.length : undefined,
                 obi: row.obi && row.obi.length ? row.obi.reduce((x, y) => x + y, 0) / row.obi.length : undefined,
+                atiku: row.atiku && row.atiku.length ? row.atiku.reduce((x, y) => x + y, 0) / row.atiku.length : undefined,
               }))
             return (
               <ResponsiveContainer width="99%" height="100%">
@@ -78,6 +82,7 @@ export default function App() {
                   <Legend verticalAlign="bottom" align="center" wrapperStyle={{ paddingTop: 8 }} />
                   <Line name="Tinubu" type="monotone" dataKey="tinubu" stroke="#007BFF" dot={false} connectNulls />
                   <Line name="Obi" type="monotone" dataKey="obi" stroke="#008753" dot={false} connectNulls />
+                  <Line name="Atiku" type="monotone" dataKey="atiku" stroke="#DC3545" dot={false} connectNulls />
                 </LineChart>
               </ResponsiveContainer>
             )
@@ -146,11 +151,11 @@ export default function App() {
                       const sorted = [...demoRows].sort((a: any,b: any)=> Number(b.registered_voters||0)-Number(a.registered_voters||0))
                       const partyColor = (p?: string) => {
                         const k = String(p||'').toLowerCase()
-                        if (k.includes('lp')) return '#008753'      // green
-                        if (k.includes('apc')) return '#FFC107'     // yellow
-                        if (k.includes('pdp')) return '#DC3545'     // red
-                        if (k.includes('nnpp')) return '#0D6EFD'    // blue
-                        return '#6C757D'
+                        if (k.includes('apc')) return '#E53935'     // APC: Red
+                        if (k.includes('pdp')) return '#00A86B'     // PDP: Green (traditional)
+                        if (k.includes('lp') || k.includes('labour')) return '#DC143C' // LP: Crimson Red
+                        if (k.includes('nnpp')) return '#0D6EFD'    // NNPP: Blue
+                        return '#9E9E9E'                             // Mixed/Other: Gray
                       }
                       return (
                     <BarChart data={sorted} layout="vertical" margin={{ left: 40, right: 20, top: 10, bottom: 10 }}>
@@ -167,11 +172,13 @@ export default function App() {
                     })()}
                   </ResponsiveContainer>
                 </div>
-                <div style={{ marginTop: 8, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 12, height: 12, background: '#008753', display: 'inline-block', borderRadius: 2 }}></span> LP</span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 12, height: 12, background: '#FFC107', display: 'inline-block', borderRadius: 2 }}></span> APC</span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 12, height: 12, background: '#DC3545', display: 'inline-block', borderRadius: 2 }}></span> PDP</span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 12, height: 12, background: '#0D6EFD', display: 'inline-block', borderRadius: 2 }}></span> NNPP</span>
+                <div style={{ marginTop: 8, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', fontSize: 14 }}>
+                  <span><strong>Party Colors:</strong></span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 14, height: 14, background: '#E53935', display: 'inline-block', borderRadius: 2 }}></span> APC</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 14, height: 14, background: '#00A86B', display: 'inline-block', borderRadius: 2 }}></span> PDP</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 14, height: 14, background: '#DC143C', display: 'inline-block', borderRadius: 2 }}></span> LP</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 14, height: 14, background: '#0D6EFD', display: 'inline-block', borderRadius: 2 }}></span> NNPP</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 14, height: 14, background: '#9E9E9E', display: 'inline-block', borderRadius: 2 }}></span> Mixed</span>
                 </div>
               </div>
             )})()}

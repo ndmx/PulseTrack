@@ -1,0 +1,47 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow read access to all users (public data)
+    match /approval_ratings/{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+    
+    match /sentiment_breakdown/{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+    
+    match /state_demographics/{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+    
+    // Allow users to submit opinions (write-only)
+    match /raw_inputs/{document=**} {
+      allow read: if false;
+      allow create: if request.resource.data.keys().hasAll(['source', 'content', 'user_id', 'location', 'candidate'])
+                    && request.resource.data.source == 'user_form'
+                    && request.resource.data.content is string
+                    && request.resource.data.content.size() > 0
+                    && request.resource.data.content.size() <= 500;
+      allow update, delete: if false;
+    }
+    
+    // Admin-only collections
+    match /reference_data/{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+    
+    match /verified_polls/{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+    
+    match /audit_log/{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+

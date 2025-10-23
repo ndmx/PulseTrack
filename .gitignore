@@ -55,3 +55,4 @@ frontend/.env.local
 
 # Do not ignore app libs
 !frontend/src/lib/
+*firebase-adminsdk*.json

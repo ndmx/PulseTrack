@@ -1,16 +1,21 @@
 import { useQuery } from "@tanstack/react-query"
-import { supabase } from "../lib/supabase"
+import { db } from "../lib/firebase"
+import { collection, query, orderBy, getDocs } from "firebase/firestore"
 
 export function useDemographics() {
   return useQuery({
     queryKey: ["demographics", "all"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("state_demographics")
-        .select("*")
-        .order("registered_voters", { ascending: false })
-      if (error) throw error
-      return data || []
+      const q = query(
+        collection(db, "state_demographics"),
+        orderBy("registered_voters", "desc")
+      )
+      
+      const snapshot = await getDocs(q)
+      return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }))
     },
     refetchInterval: 3600000,
     staleTime: 1800000,

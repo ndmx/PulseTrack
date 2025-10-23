@@ -8,9 +8,21 @@ type SnapLeafletMapProps = {
   height?: number
 }
 
+type DemographicsData = {
+  state: string
+  total_population: number
+  voting_age_population: number
+  registered_voters: number
+  political_affiliation: string
+  tribal_affiliation: string
+  employment_rate: number
+  religious_affiliation: string
+}
+
 export const SnapLeafletMap: React.FC<SnapLeafletMapProps> = ({ geojsonUrl, height = 600 }) => {
   const [data, setData] = useState<any | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [demographics, setDemographics] = useState<Record<string, DemographicsData>>({})
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [containerWidth, setContainerWidth] = useState<number>(0)
 
@@ -19,6 +31,24 @@ export const SnapLeafletMap: React.FC<SnapLeafletMapProps> = ({ geojsonUrl, heig
     if (!url) { setError("Missing VITE_SNAPSTATS_GEOJSON_URL"); return }
     fetch(url).then(r => r.json()).then(json => setData(json)).catch(e => setError(String(e)))
   }, [geojsonUrl])
+
+  // Load demographics data from static JSON
+  useEffect(() => {
+    fetch('/snapstats/state_demographics.json')
+      .then(r => r.json())
+      .then(json => {
+        if (json.states && Array.isArray(json.states)) {
+          const demoMap: Record<string, DemographicsData> = {}
+          json.states.forEach((state: DemographicsData) => {
+            demoMap[state.state] = state
+          })
+          setDemographics(demoMap)
+        }
+      })
+      .catch(() => {
+        // Silently fail if demographics not available
+      })
+  }, [])
 
 	const zoneColors: Record<string, string> = useMemo(() => ({
 		"North Central": "#2E8B57",
@@ -43,7 +73,48 @@ export const SnapLeafletMap: React.FC<SnapLeafletMapProps> = ({ geojsonUrl, heig
     const props = feature?.properties || {}
     const name = props.shapeName || props.State || "Unknown"
     const zone = props.Zone || "Unknown"
-    ;(layer as L.Path).bindTooltip(`${name} — ${zone}`)
+    
+    // Get demographics data for this state
+    const demo = demographics[name] || demographics[name.replace(/\s+/g, '')] // Try with and without spaces
+    
+    let tooltipContent = `<div style="padding: 4px 0;">
+      <div style="font-weight: bold; font-size: 14px; margin-bottom: 4px; color: #212529;">${name}</div>
+      <div style="font-size: 12px; color: #6C757D; margin-bottom: 6px;">Zone: ${zone}</div>`
+    
+    if (demo) {
+      // Party color coding
+      const partyColors: Record<string, string> = {
+        'APC': '#E53935',
+        'PDP': '#00A86B',
+        'LP': '#DC143C',
+        'NNPP': '#0D6EFD'
+      }
+      const partyColor = partyColors[demo.political_affiliation] || '#6C757D'
+      
+      tooltipContent += `
+      <div style="border-top: 1px solid #E9ECEF; padding-top: 6px; margin-top: 2px;">
+        <div style="font-size: 12px; margin: 2px 0;">
+          <strong>Majority Party:</strong> 
+          <span style="color: ${partyColor}; font-weight: 600;">${demo.political_affiliation}</span>
+        </div>
+        <div style="font-size: 11px; color: #495057; margin: 2px 0;">
+          <strong>Population:</strong> ${demo.total_population.toLocaleString()}
+        </div>
+        <div style="font-size: 11px; color: #495057; margin: 2px 0;">
+          <strong>Registered Voters:</strong> ${demo.registered_voters.toLocaleString()}
+        </div>
+        <div style="font-size: 11px; color: #495057; margin: 2px 0;">
+          <strong>Tribal Group:</strong> ${demo.tribal_affiliation}
+        </div>
+      </div>`
+    }
+    
+    tooltipContent += `</div>`
+    
+    ;(layer as L.Path).bindTooltip(tooltipContent, {
+      sticky: true,
+      direction: 'top'
+    })
   }
 
   // Compute bounds (guarded)
@@ -123,7 +194,12 @@ export const SnapLeafletMap: React.FC<SnapLeafletMapProps> = ({ geojsonUrl, heig
 			>
         {/* No base TileLayer to keep background clean; add one with low opacity if desired */}
         {error ? null : (!data ? null : (
-          <GeoJSON data={data as any} style={style as any} onEachFeature={onEach} />
+          <GeoJSON 
+            key={Object.keys(demographics).length} 
+            data={data as any} 
+            style={style as any} 
+            onEachFeature={onEach} 
+          />
         ))}
         <AutoFit w={containerWidth} h={mapHeight} b={bounds} />
 			</MapContainer>
