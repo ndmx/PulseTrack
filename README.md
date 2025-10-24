@@ -142,6 +142,12 @@ cp .env.example .env.local
 # Edit .env.local with your Firebase config from Firebase Console > Project Settings
 ```
 
+**⚠️ IMPORTANT - Environment Variables Security:**
+- Never commit `.env.local` or `.env` files to Git
+- Firebase API keys should always be stored in environment variables
+- Add API key restrictions in Google Cloud Console to limit usage to your domains
+- The `.env.example` file is a template only - copy it to `.env.local` with your actual credentials
+
 ### Local Development
 
 ```bash
@@ -211,6 +217,37 @@ For detailed instructions, troubleshooting, and CI/CD setup, see [DEPLOYMENT.md]
 - Functions: Auto-inherit credentials from Firebase
 
 **Database Schema**: See Firestore collections (`approval_ratings`, `sentiment_breakdown`, `state_demographics`, `raw_inputs`) in Firebase Console or code comments.
+
+---
+
+## 🔒 Security Best Practices
+
+### API Key Management
+
+**Never commit API keys to Git:**
+- All Firebase credentials are stored in `frontend/.env.local` (gitignored)
+- Use the template `frontend/.env.example` to create your local environment file
+- The exposed key has been removed from Git history
+
+**Add API Key Restrictions in Google Cloud Console:**
+
+1. Go to [Google Cloud Console > Credentials](https://console.cloud.google.com/apis/credentials)
+2. Select your Firebase project
+3. Click on your API key to edit
+4. Add **Application restrictions**:
+   - Select "HTTP referrers (web sites)"
+   - Add your domains:
+     - `https://pulsetracker-0000.web.app/*`
+     - `https://pulsetracker-0000.firebaseapp.com/*`
+     - `http://localhost:5173/*` (for local development)
+5. Add **API restrictions**:
+   - Select "Restrict key"
+   - Enable only required APIs:
+     - Cloud Firestore API
+     - Firebase Hosting API
+6. Click "Save"
+
+**Note**: Firebase API keys are safe to expose in client-side code IF properly restricted. The restrictions above ensure your key can only be used from your authorized domains and for specific Firebase services.
 
 ---
 
