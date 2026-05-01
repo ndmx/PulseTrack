@@ -49,6 +49,9 @@ export type MonthlyTrendRecord = {
   candidate: string
   bucket_month?: string
   avg_rating: number
+  rating_score: number
+  timestamp?: string
+  state?: string
   sample_count?: number
   updated_at?: string
 }
@@ -189,11 +192,16 @@ async function fetchMonthlyApprovalRollups(limitMonths?: number): Promise<Monthl
 
   return snapshot.docs.map(doc => {
     const data = doc.data() as Record<string, any>
+    const bucketMonth = data.bucket_month
+    const rating = Number(data.avg_rating ?? data.rating_score ?? 0)
     return {
       id: doc.id,
       candidate: data.candidate || "Unknown",
-      bucket_month: data.bucket_month,
-      avg_rating: Number(data.avg_rating ?? data.rating_score ?? 0),
+      bucket_month: bucketMonth,
+      avg_rating: rating,
+      rating_score: rating,
+      timestamp: bucketMonth ? `${bucketMonth}-01T00:00:00.000Z` : toIsoString(data.updated_at as FirestoreTimestamp),
+      state: data.state || NATIONAL_STATE,
       sample_count: Number(data.sample_count ?? data.input_count ?? 0),
       updated_at: toIsoString(data.updated_at as FirestoreTimestamp),
     }
@@ -229,6 +237,9 @@ export async function fetchMonthlyApprovalTrend(limitMonths?: number): Promise<M
       candidate: row.candidate,
       bucket_month: row.bucket_month,
       avg_rating: row.count > 0 ? row.sum / row.count : 0,
+      rating_score: row.count > 0 ? row.sum / row.count : 0,
+      timestamp: `${row.bucket_month}-01T00:00:00.000Z`,
+      state: NATIONAL_STATE,
       sample_count: row.count,
       updated_at: row.updated_at,
     }))
