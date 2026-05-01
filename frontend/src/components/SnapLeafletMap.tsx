@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react"
 import { MapContainer, GeoJSON, useMap } from "react-leaflet"
 import L, { LatLngBoundsExpression, PathOptions } from "leaflet"
 import "leaflet/dist/leaflet.css"
+import { SNAPSTATS_URLS } from "../lib/snapstatsConfig"
 
 type SnapLeafletMapProps = {
   geojsonUrl?: string
@@ -27,14 +28,16 @@ export const SnapLeafletMap: React.FC<SnapLeafletMapProps> = ({ geojsonUrl, heig
   const [containerWidth, setContainerWidth] = useState<number>(0)
 
   useEffect(() => {
-    const url = geojsonUrl || (import.meta as any).env.VITE_SNAPSTATS_GEOJSON_URL
-    if (!url) { setError("Missing VITE_SNAPSTATS_GEOJSON_URL"); return }
+    const url = geojsonUrl || SNAPSTATS_URLS.geojson
+    if (!url) { setError("Missing SNAPSTATS GeoJSON URL"); return }
     fetch(url).then(r => r.json()).then(json => setData(json)).catch(e => setError(String(e)))
   }, [geojsonUrl])
 
   // Load demographics data from static JSON
   useEffect(() => {
-    fetch('/snapstats/state_demographics.json')
+    const url = SNAPSTATS_URLS.demographics
+    if (!url) return
+    fetch(url)
       .then(r => r.json())
       .then(json => {
         if (json.states && Array.isArray(json.states)) {

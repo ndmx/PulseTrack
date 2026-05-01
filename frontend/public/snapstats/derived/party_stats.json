@@ -1,1 +1,18 @@
-[{"party": "APC", "stateCount": 26}, {"party": "PDP", "stateCount": 19}, {"party": "LP", "stateCount": 11}, {"party": "NNPP", "stateCount": 7}]
+[
+  {
+    "party": "LP",
+    "stateCount": 12
+  },
+  {
+    "party": "PDP",
+    "stateCount": 12
+  },
+  {
+    "party": "APC",
+    "stateCount": 12
+  },
+  {
+    "party": "NNPP",
+    "stateCount": 1
+  }
+]

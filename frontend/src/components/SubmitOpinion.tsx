@@ -1,7 +1,11 @@
 import React, { useMemo, useState } from "react"
-import { db } from "../lib/firebase"
-import { collection, addDoc, serverTimestamp } from "firebase/firestore"
 import { useDemographics } from "../hooks/useDemographics"
+
+const customEndpoint = import.meta.env.VITE_SUBMIT_OPINION_URL
+const SUBMIT_ENDPOINT =
+  typeof customEndpoint === "string" && customEndpoint.trim().length > 0
+    ? customEndpoint.trim()
+    : "/api/submit_opinion"
 
 export const SubmitOpinion: React.FC = () => {
   const demo = useDemographics()
@@ -9,7 +13,7 @@ export const SubmitOpinion: React.FC = () => {
   const [location, setLocation] = useState("")
   const [opinion, setOpinion] = useState("")
   const [submitting, setSubmitting] = useState(false)
-  const [msg, setMsg] = useState<string | null>(null)
+  const [feedback, setFeedback] = useState<{ tone: "success" | "error"; text: string } | null>(null)
 
   const states: string[] = useMemo(() => {
     if (!demo.data) return []
@@ -20,28 +24,38 @@ export const SubmitOpinion: React.FC = () => {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setMsg(null)
+    setFeedback(null)
     if (!opinion.trim() || !location) {
-      setMsg("Please select a state and enter your opinion.")
+      setFeedback({ tone: "error", text: "Please select a state and enter your opinion." })
       return
     }
     try {
       setSubmitting(true)
       const payload = {
-        source: "user_form",
         content: opinion.trim(),
         user_id: crypto.randomUUID(),
+        client_ref: crypto.randomUUID(),
         location,
         candidate,
-        timestamp: serverTimestamp(),
       }
-      
-      await addDoc(collection(db, "raw_inputs"), payload)
-      setMsg("Thank you! Your opinion has been recorded.")
+
+      const res = await fetch(SUBMIT_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+      const body = await res.json().catch(() => ({}))
+
+      if (!res.ok) {
+        throw new Error(body?.error || "Unexpected error. Please try again.")
+      }
+
+      setFeedback({ tone: "success", text: body?.message || "Thank you! Your opinion has been recorded." })
       setOpinion("")
     } catch (err) {
       console.error(err)
-      setMsg("Unexpected error. Please try again.")
+      const message = err instanceof Error ? err.message : "Unexpected error. Please try again."
+      setFeedback({ tone: "error", text: message })
     } finally {
       setSubmitting(false)
     }
@@ -173,17 +187,17 @@ export const SubmitOpinion: React.FC = () => {
           {submitting ? "Submitting..." : "Submit Opinion"}
         </button>
 
-        {msg && (
+        {feedback && (
           <div style={{ 
             marginTop: "16px",
             padding: "12px 16px",
             borderRadius: "8px",
-            background: msg.includes("Thank you") ? "#ECFDF5" : "#FEF2F2",
-            border: `1px solid ${msg.includes("Thank you") ? "#A7F3D0" : "#FECACA"}`,
-            color: msg.includes("Thank you") ? "#065F46" : "#991B1B",
+            background: feedback.tone === "success" ? "#ECFDF5" : "#FEF2F2",
+            border: `1px solid ${feedback.tone === "success" ? "#A7F3D0" : "#FECACA"}`,
+            color: feedback.tone === "success" ? "#065F46" : "#991B1B",
             fontSize: "14px"
           }}>
-            {msg}
+            {feedback.text}
           </div>
         )}
 
