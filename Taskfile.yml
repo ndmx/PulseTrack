@@ -1,0 +1,57 @@
+version: '3'
+
+env:
+  FRONTEND_DIR: frontend
+  FUNCTIONS_DIR: functions
+
+tasks:
+  default:
+    desc: Show available PulseTrack tasks
+    cmds:
+      - task --list
+
+  dev:frontend:
+    desc: Run the Vite dev server with React Query/Firebase
+    dir: "{{.FRONTEND_DIR}}"
+    cmds:
+      - npm run dev
+
+  build:frontend:
+    desc: Create a production build of the frontend
+    dir: "{{.FRONTEND_DIR}}"
+    cmds:
+      - npm run build
+
+  typecheck:frontend:
+    desc: Run TypeScript without emitting frontend assets
+    dir: "{{.FRONTEND_DIR}}"
+    cmds:
+      - npm run typecheck
+
+  preview:frontend:
+    desc: Serve the production build locally
+    dir: "{{.FRONTEND_DIR}}"
+    cmds:
+      - npm run preview
+
+  functions:serve:
+    desc: Run the Firebase Functions emulator (Python codebase)
+    cmds:
+      - firebase emulators:start --only functions
+
+  functions:test:
+    desc: Run Cloud Functions unit tests (pytest)
+    dir: "{{.FUNCTIONS_DIR}}"
+    cmds:
+      - pytest
+
+  data:convert-demographics:
+    desc: Regenerate Snapstats demographic JSON assets
+    cmds:
+      - python3 scripts/convert_demographics_to_json.py
+
+  docs:dataflow:
+    desc: Open the dataflow documentation location
+    cmds:
+      - echo "See docs/dataflow.md"
+

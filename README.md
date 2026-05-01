@@ -2,7 +2,7 @@
 
 Real-time sentiment tracking for Nigerian political candidates using user opinions and NLP, focused on 2027 elections.
 
-**Live Demo**: https://pulsetracker-0000.web.app
+**Live Site**: https://pulsetracker.org/
 
 ---
 
@@ -140,6 +140,9 @@ npm install
 # 4. Configure environment variables
 cp .env.example .env.local
 # Edit .env.local with your Firebase config from Firebase Console > Project Settings
+# Optional overrides:
+#   VITE_SUBMIT_OPINION_URL=https://<your-cloud-function-url>/submit_opinion
+#   VITE_SNAPSTATS_BASE_URL=https://storage.googleapis.com/<bucket>/snapstats
 ```
 
 **⚠️ IMPORTANT - Environment Variables Security:**
@@ -165,6 +168,37 @@ cd frontend
 npm run build
 ```
 
+## 🛠️ Repository Tasks
+
+Install [go-task](https://taskfile.dev/#/installation) once (`brew install go-task` on macOS). After that, run common workflows from the repo root:
+
+```bash
+task dev:frontend          # Vite dev server
+task typecheck:frontend    # TypeScript validation
+task build:frontend        # Production build
+task preview:frontend      # Serve dist/ locally
+task functions:serve       # Firebase Functions emulator (Python)
+task functions:test        # Run pytest suite for Cloud Functions
+task data:convert-demographics  # Refresh Snapstats JSON assets
+task docs:dataflow         # Quick pointer to the architecture doc
+```
+
+### Snapstats data pipeline
+
+- `task data:convert-demographics` regenerates every file under `frontend/public/snapstats/derived` using the canonical `state_demographics.json` (or, when you add `--from-firestore`, directly from the `state_demographics` collection).
+- To pull straight from Firestore, export credentials and run:
+
+  ```bash
+  export GOOGLE_APPLICATION_CREDENTIALS=service-account.json
+  python3 scripts/convert_demographics_to_json.py --from-firestore
+  ```
+
+- The frontend reads all Snapstats assets via `SNAPSTATS_URLS` (see `frontend/src/lib/snapstatsConfig.ts`), so you can move the files to Cloud Storage/CDN by setting `VITE_SNAPSTATS_BASE_URL` without touching any React code.
+
+## 📘 Dataflow Reference
+
+See [`docs/dataflow.md`](./docs/dataflow.md) for an end-to-end description of how submissions travel through Firestore, the ETL pipeline, and the frontend visualizations. Keep it updated when the ingestion or processing layers change.
+
 ### Seed Database (Optional)
 
 ```bash
@@ -172,6 +206,7 @@ npm run build
 npm install firebase-admin
 
 # Seed with historical data (Tinubu, Obi, Atiku) or generate test data
+export GOOGLE_APPLICATION_CREDENTIALS=/secure/path/to/service-account.json
 node seed.js          # Production (from CSV files)
 node seed.js test     # Test data (synthetic)
 ```
@@ -198,7 +233,7 @@ For detailed instructions, troubleshooting, and CI/CD setup, see [DEPLOYMENT.md]
 
 ## 🔄 How It Works
 
-1. **User Interaction**: Users submit opinions via web form → stored in Firestore `raw_inputs`
+1. **User Interaction**: Users submit opinions via `/api/submit_opinion` (Cloud Function) which rate-limits, validates, and normalizes locations before writing to Firestore `raw_inputs`
 2. **ETL Pipeline**: Cloud Function runs every 10 minutes, analyzes sentiment (TextBlob), calculates approval scores, writes to `approval_ratings` and `sentiment_breakdown`
 3. **Data Visualization**: React hooks query Firestore, components render charts (Recharts) and maps (Leaflet)
 4. **Static Assets**: GeoJSON and demographics served from CDN for fast map rendering
@@ -209,14 +244,31 @@ For detailed instructions, troubleshooting, and CI/CD setup, see [DEPLOYMENT.md]
 
 **Firestore Security Rules** (`firestore.rules`):
 - Public read: `approval_ratings`, `sentiment_breakdown`, `state_demographics`
-- Validated writes: `raw_inputs` (user submissions)
+- `raw_inputs`: write access disabled for clients (all submissions flow through Cloud Functions)
 - Admin-only: Other collections
 
 **Environment Variables**:
 - Frontend: Firebase config in `frontend/.env.local` (never commit)
 - Functions: Auto-inherit credentials from Firebase
+- Local seeding: use `GOOGLE_APPLICATION_CREDENTIALS`, `FIREBASE_SERVICE_ACCOUNT_JSON`, or Application Default Credentials; do not store service-account JSON files in this repo.
 
 **Database Schema**: See Firestore collections (`approval_ratings`, `sentiment_breakdown`, `state_demographics`, `raw_inputs`) in Firebase Console or code comments.
+
+### Admin Upload API
+
+- Endpoint: `POST /api/admin_upload`
+- Authentication: supply `x-api-key` header that matches the `ADMIN_API_KEY` secret configured for Cloud Functions.
+- Payloads:
+  - JSON: `{ "records": [ { "candidate": "...", "location": "...", "content": "..." }, ... ] }`
+  - CSV upload (`multipart/form-data`) with matching column headers.
+- Set the secret once per project:
+
+```bash
+firebase functions:secrets:set ADMIN_API_KEY
+firebase deploy --only functions
+```
+
+For local emulators, export `ADMIN_API_KEY` before running `task functions:serve`.
 
 ---
 
@@ -239,6 +291,7 @@ For detailed instructions, troubleshooting, and CI/CD setup, see [DEPLOYMENT.md]
    - Add your domains:
      - `https://pulsetracker-0000.web.app/*`
      - `https://pulsetracker-0000.firebaseapp.com/*`
+     - `https://pulsetracker.org/*`
      - `http://localhost:5173/*` (for local development)
 5. Add **API restrictions**:
    - Select "Restrict key"
@@ -269,7 +322,7 @@ INEC statistics © Independent National Electoral Commission (public domain)
 
 ## 🔗 Links
 
-- **Live App**: https://pulsetracker-0000.web.app
+- **Live App**: https://pulsetracker.org/
 - **Deployment Guide**: [DEPLOYMENT.md](./DEPLOYMENT.md)
 - **Firebase Docs**: https://firebase.google.com/docs
 
@@ -277,3 +330,6 @@ INEC statistics © Independent National Electoral Commission (public domain)
 
 For issues or advanced setup, see [DEPLOYMENT.md](./DEPLOYMENT.md).
 
+---
+
+**Designed by edentv** - Creator Studio

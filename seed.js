@@ -12,11 +12,23 @@ const admin = require('firebase-admin');
 const fs = require('fs');
 const path = require('path');
 
-// Initialize Firebase Admin with service account
-const serviceAccount = require('./pulsetracker-0000-firebase-adminsdk-fbsvc-182bb21235.json');
+function loadCredential() {
+  if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+    return admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON));
+  }
+
+  if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    const credentialPath = path.resolve(process.env.GOOGLE_APPLICATION_CREDENTIALS);
+    const serviceAccount = JSON.parse(fs.readFileSync(credentialPath, 'utf-8'));
+    return admin.credential.cert(serviceAccount);
+  }
+
+  return admin.credential.applicationDefault();
+}
 
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
+  credential: loadCredential(),
+  projectId: process.env.FIREBASE_PROJECT_ID || process.env.GCLOUD_PROJECT
 });
 
 const db = admin.firestore();
@@ -318,4 +330,3 @@ main()
     console.error('\n❌ Fatal error:', err);
     process.exit(1);
   });
-

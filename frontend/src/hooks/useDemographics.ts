@@ -2,6 +2,18 @@ import { useQuery } from "@tanstack/react-query"
 import { db } from "../lib/firebase"
 import { collection, query, orderBy, getDocs } from "firebase/firestore"
 
+export type DemographicsRecord = {
+  id: string
+  state?: string
+  zone?: string
+  total_population?: number
+  voting_age_population?: number
+  registered_voters?: number
+  political_affiliation?: string
+  tribal_affiliation?: string
+  [key: string]: unknown
+}
+
 export function useDemographics() {
   return useQuery({
     queryKey: ["demographics", "all"],
@@ -12,7 +24,7 @@ export function useDemographics() {
       )
       
       const snapshot = await getDocs(q)
-      return snapshot.docs.map(doc => ({
+      return snapshot.docs.map((doc): DemographicsRecord => ({
         id: doc.id,
         ...doc.data()
       }))

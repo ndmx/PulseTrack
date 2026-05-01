@@ -25,6 +25,7 @@ venv/
 ENV/
 env/
 .env
+functions/.env
 
 # IDE
 .idea/
@@ -52,7 +53,10 @@ dist/
 .env.local
 web/.env.local
 frontend/.env.local
+functions/.env.local
 
 # Do not ignore app libs
 !frontend/src/lib/
 *firebase-adminsdk*.json
+service-account*.json
+*-service-account.json

@@ -6,6 +6,16 @@ service cloud.firestore {
       allow read: if true;
       allow write: if false;
     }
+
+    match /approval_trends_daily/{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /approval_trends_monthly/{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
     
     match /sentiment_breakdown/{document=**} {
       allow read: if true;
@@ -19,13 +29,11 @@ service cloud.firestore {
     
     // Allow users to submit opinions (write-only)
     match /raw_inputs/{document=**} {
-      allow read: if false;
-      allow create: if request.resource.data.keys().hasAll(['source', 'content', 'user_id', 'location', 'candidate'])
-                    && request.resource.data.source == 'user_form'
-                    && request.resource.data.content is string
-                    && request.resource.data.content.size() > 0
-                    && request.resource.data.content.size() <= 500;
-      allow update, delete: if false;
+      allow read, write: if false;
+    }
+
+    match /submission_rate_limits/{document=**} {
+      allow read, write: if false;
     }
     
     // Admin-only collections
@@ -44,4 +52,3 @@ service cloud.firestore {
     }
   }
 }
-

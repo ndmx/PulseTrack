@@ -305,6 +305,19 @@ firebase functions:log --only process_etl
 firebase functions:log --only functions --min-severity error
 ```
 
+### Alerting & Structured Logs
+
+- Cloud Functions now emit structured JSON logs (events such as `submit_opinion.accepted`, `etl.start`, `etl.complete`, and `etl.error`). Use Cloud Logging's query builder to filter by `jsonPayload.event`.
+- Create a log-based metric for `etl.error` and wire it to a Cloud Monitoring alert policy so you get notified when the pipeline fails.
+- Suggested query for the metric:
+
+  ```
+  resource.type="cloud_function"
+  jsonPayload.event="etl.error"
+  ```
+
+- After creating the metric, open Cloud Monitoring → Alerting → Create policy, add a condition that fires when the metric count ≥ 1 within 5 minutes, and route it to email/Slack.
+
 ### Cost Monitoring
 
 Check Firebase Console > Usage and billing:
@@ -510,6 +523,9 @@ jobs:
       
       - name: Install dependencies
         run: cd frontend && npm ci
+
+      - name: Typecheck
+        run: cd frontend && npm run typecheck
       
       - name: Build
         run: cd frontend && npm run build
@@ -524,10 +540,9 @@ jobs:
 ```
 
 **Setup**:
-1. Generate service account key:
-   - Firebase Console > Project Settings > Service Accounts
-   - Generate new private key
-2. Add to GitHub Secrets as `FIREBASE_SERVICE_ACCOUNT`
+1. Prefer workload identity or a restricted CI service account where possible.
+2. If GitHub Actions uses Firebase's service-account JSON secret, store it only in GitHub Secrets as `FIREBASE_SERVICE_ACCOUNT`.
+3. Rotate the secret immediately if it is ever downloaded, shared, or committed.
 
 ---
 
@@ -569,7 +584,7 @@ Before deploying to production, verify:
 - [ ] Static files exist in `frontend/public/snapstats/`
 - [ ] Firestore security rules are production-ready
 - [ ] Cloud Functions pass local testing
-- [ ] Service account JSON is present (for seeding)
+- [ ] Local seeding uses `GOOGLE_APPLICATION_CREDENTIALS`, `FIREBASE_SERVICE_ACCOUNT_JSON`, or Application Default Credentials
 - [ ] Database is seeded with initial data
 - [ ] Firebase project is on Blaze plan (for Cloud Functions)
 - [ ] Custom domain DNS is configured (if applicable)
@@ -596,4 +611,3 @@ After deployment:
 ---
 
 **Need help?** Check the [main README](./README.md) or open an issue on GitHub.
-
