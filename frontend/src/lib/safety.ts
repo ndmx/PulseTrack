@@ -22,6 +22,8 @@ export type SafetyIncident = {
   expiresAt: Date | null
   confirmations: number
   disputes: number
+  unsafeReports: number
+  blockedReports: number
   officialUpdates: number
   locationPending: boolean
 }
@@ -70,9 +72,31 @@ export function incidentFromData(id: string, data: DocumentData): SafetyIncident
     expiresAt: toDate(data.deleteAfter),
     confirmations: Math.max(0, Number(data.confirmations) || 0),
     disputes: Math.max(0, Number(data.disputes) || 0),
+    unsafeReports: Math.max(0, Number(data.unsafe_reports) || 0),
+    blockedReports: Math.max(0, Number(data.blocked_reports) || 0),
     officialUpdates: Math.max(0, Number(data.official_updates) || 0),
     locationPending: data.location_reveal_status === "pending_k_anonymity" || latitude === null || longitude === null,
   }
+}
+
+// Mirror the iPhone feed's public-data scopes. These use only fields already
+// present in safety_incidents_public; no reporter identity is needed.
+const alwaysHighRiskSubtypes = new Set([
+  "armed_robbery", "kidnapping", "gunshots", "carjacking", "communal_clash",
+  "building_fire", "market_fire", "gas_leak", "explosion", "pipeline_fire",
+  "medical_emergency", "suspected_outbreak", "flooding", "building_collapse",
+  "bridge_collapse", "road_collapse", "fallen_power_line", "missing_person",
+])
+
+export type FeedScope = "all" | "priority" | "new" | "verified"
+
+export function matchesFeedScope(incident: SafetyIncident, scope: FeedScope): boolean {
+  if (scope === "all") return true
+  if (scope === "priority") return incident.severity === "High" || incident.severity === "Urgent" || incident.unsafeReports > 0 || alwaysHighRiskSubtypes.has(incident.subtype)
+  const verified = incident.officialUpdates > 0 || (incident.confirmations >= 8 && incident.disputes < incident.confirmations)
+  if (scope === "verified") return verified
+  const unconfirmed = !verified && incident.confirmations < 2 && incident.unsafeReports === 0 && incident.blockedReports === 0
+  return unconfirmed || Boolean(incident.reportedAt && Date.now() - incident.reportedAt.getTime() < 20 * 60_000)
 }
 
 export function isCurrent(incident: SafetyIncident): boolean {

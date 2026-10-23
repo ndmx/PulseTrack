@@ -1,34 +1,33 @@
 # PulseTrack
 
-PulseTrack is a community monitoring website. Live safety reports from the PulseTrackr iPhone app are the primary view; the earlier Nigerian civic insights and Snapstats remain available under `/insights` and `/snapstats`.
+PulseTrackr is PulseTrack's community safety product on iPhone and the web. The website follows the app's core Map → Feed → Report flow; the iPhone app also provides SOS, trusted-contact alerts, and escorted walks. Voter and community data remain at `/insights` and `/snapstats`, outside the safety navigation.
 
 **Live Site**: https://pulsetracker.org/
 
-The web safety feed reads the shared `safety_incidents_public` collection in real time and shows reports from the last 24 hours. Browser reporting is gated behind Firebase App Check configuration. The iPhone app remains the home for SOS, trusted contacts, escort, and background location. See [the unification plan](docs/web-unification.md) for the feature split and release dependencies.
+The web map and feed read the shared `safety_incidents_public` collection in real time and show reports from the last 24 hours. Browser reporting uses the app's `submit_incident` callable and requires Firebase App Check configuration. See [the unification plan](docs/web-unification.md) for the feature split and release dependencies.
 
 ---
 
-## ✨ Key Features
+## Current product surfaces
 
-1. **Modern React Frontend** (Vite + TypeScript)  
-   - Interactive approval rating cards, trend charts, and sentiment visualizations  
-   - Geographic data explorer with Leaflet maps (Snapstats)  
-   - State-level demographic insights and filtering  
-   - User opinion submission form
+1. **PulseTrackr on the web** (React + Vite + TypeScript)
+   - Map-first community safety home, including an empty map when no public reports are recent
+   - Live feed, nearby filter, category search, incident detail and sharing
+   - Browser incident reporting when Firebase App Check is configured
 
-2. **Firebase Full-Stack**  
-   - **Hosting**: Global CDN for static assets  
-   - **Database**: Cloud Firestore (NoSQL, serverless, no hibernation)  
-   - **Functions**: Python backend for ETL pipeline
+2. **PulseTrackr on iPhone**
+   - Map, Feed, Report and Settings
+   - SOS, trusted contacts, escorted walks, push alerts and background location
 
-3. **Automated ETL Pipeline**  
-   - Runs every 10 minutes via Cloud Scheduler  
-   - Extracts user submissions, analyzes sentiment (TextBlob + NLTK)  
-   - Calculates approval scores and aggregates by candidate/state/time
+3. **Civic data**
+   - `/insights` shows existing voter, population, and community data; `/snapstats` provides the map explorer
+   - Candidate opinion intake and scheduled sentiment processing are retired. Historical records remain in Firestore.
 
 ---
 
-## 🏗️ Architecture
+## Historical civic insights architecture (retired)
+
+This diagram describes the earlier candidate sentiment system. It is not an active data flow. The current `/insights` view reads `state_demographics` and static community estimates; `/api/submit_opinion` and `/api/admin_upload` return HTTP 410.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -143,7 +142,6 @@ npm install
 cp .env.example .env.local
 # Edit .env.local with your Firebase config from Firebase Console > Project Settings
 # Optional overrides:
-#   VITE_SUBMIT_OPINION_URL=https://<your-cloud-function-url>/submit_opinion
 #   VITE_SNAPSTATS_BASE_URL=https://storage.googleapis.com/<bucket>/snapstats
 ```
 
@@ -199,7 +197,7 @@ task docs:dataflow         # Quick pointer to the architecture doc
 
 ## 📘 Dataflow Reference
 
-See [`docs/dataflow.md`](./docs/dataflow.md) for an end-to-end description of how submissions travel through Firestore, the ETL pipeline, and the frontend visualizations. Keep it updated when the ingestion or processing layers change.
+See [`docs/dataflow.md`](./docs/dataflow.md) for the current civic data sources and the retired opinion flow.
 
 ### Seed Database (Optional)
 
@@ -207,7 +205,7 @@ See [`docs/dataflow.md`](./docs/dataflow.md) for an end-to-end description of ho
 # Install dependencies
 npm install firebase-admin
 
-# Seed with historical data (Tinubu, Obi, Atiku) or generate test data
+# Historical import utility only; do not use for new candidate opinion collection
 export GOOGLE_APPLICATION_CREDENTIALS=/secure/path/to/service-account.json
 node seed.js          # Production (from CSV files)
 node seed.js test     # Test data (synthetic)
@@ -233,12 +231,11 @@ For detailed instructions, troubleshooting, and CI/CD setup, see [DEPLOYMENT.md]
 
 ---
 
-## 🔄 How It Works
+## 🔄 Current civic data flow
 
-1. **User Interaction**: Users submit opinions via `/api/submit_opinion` (Cloud Function) which rate-limits, validates, and normalizes locations before writing to Firestore `raw_inputs`
-2. **ETL Pipeline**: Cloud Function runs every 10 minutes, analyzes sentiment (TextBlob), calculates approval scores, writes to `approval_ratings` and `sentiment_breakdown`
-3. **Data Visualization**: React hooks query Firestore, components render charts (Recharts) and maps (Leaflet)
-4. **Static Assets**: GeoJSON and demographics served from CDN for fast map rendering
+- `/insights` reads `state_demographics` from Firestore for voter and population records.
+- `/insights` and `/snapstats` read existing Snapstats static files for community and geographic estimates.
+- Historical candidate opinion documents remain stored. The public and admin intake endpoints return HTTP 410, and the scheduled `process_etl` function is retired.
 
 ---
 
@@ -246,7 +243,7 @@ For detailed instructions, troubleshooting, and CI/CD setup, see [DEPLOYMENT.md]
 
 **Firestore Security Rules** (`firestore.rules`):
 - Public read: `approval_ratings`, `sentiment_breakdown`, `state_demographics`
-- `raw_inputs`: write access disabled for clients (all submissions flow through Cloud Functions)
+- `raw_inputs`: client writes disabled; retired HTTP endpoints no longer add records
 - Admin-only: Other collections
 
 **Environment Variables**:
@@ -256,82 +253,6 @@ For detailed instructions, troubleshooting, and CI/CD setup, see [DEPLOYMENT.md]
 
 **Database Schema**: See Firestore collections (`approval_ratings`, `sentiment_breakdown`, `state_demographics`, `raw_inputs`) in Firebase Console or code comments.
 
-### Admin Upload API
+### Retired opinion APIs
 
-- Endpoint: `POST /api/admin_upload`
-- Authentication: supply `x-api-key` header that matches the `ADMIN_API_KEY` secret configured for Cloud Functions.
-- Payloads:
-  - JSON: `{ "records": [ { "candidate": "...", "location": "...", "content": "..." }, ... ] }`
-  - CSV upload (`multipart/form-data`) with matching column headers.
-- Set the secret once per project:
-
-```bash
-firebase functions:secrets:set ADMIN_API_KEY
-firebase deploy --only functions
-```
-
-For local emulators, export `ADMIN_API_KEY` before running `task functions:serve`.
-
----
-
-## 🔒 Security Best Practices
-
-### API Key Management
-
-**Never commit API keys to Git:**
-- All Firebase credentials are stored in `frontend/.env.local` (gitignored)
-- Use the template `frontend/.env.example` to create your local environment file
-- The exposed key has been removed from Git history
-
-**Add API Key Restrictions in Google Cloud Console:**
-
-1. Go to [Google Cloud Console > Credentials](https://console.cloud.google.com/apis/credentials)
-2. Select your Firebase project
-3. Click on your API key to edit
-4. Add **Application restrictions**:
-   - Select "HTTP referrers (web sites)"
-   - Add your domains:
-     - `https://pulsetracker-0000.web.app/*`
-     - `https://pulsetracker-0000.firebaseapp.com/*`
-     - `https://pulsetracker.org/*`
-     - `http://localhost:5173/*` (for local development)
-5. Add **API restrictions**:
-   - Select "Restrict key"
-   - Enable only required APIs:
-     - Cloud Firestore API
-     - Firebase Hosting API
-6. Click "Save"
-
-**Note**: Firebase API keys are safe to expose in client-side code IF properly restricted. The restrictions above ensure your key can only be used from your authorized domains and for specific Firebase services.
-
----
-
-## 🛡️ License
-
-Source code: MIT  
-INEC statistics © Independent National Electoral Commission (public domain)
-
----
-
-## 🙏 Acknowledgements
-
-- **geoBoundaries** - Open administrative boundaries
-- **INEC Nigeria** - Voter statistics (93.47M registered voters, 2023)
-- **World Bank & Statista** - Population projections
-- **Firebase & TextBlob** - Infrastructure and NLP tools
-
----
-
-## 🔗 Links
-
-- **Live App**: https://pulsetracker.org/
-- **Deployment Guide**: [DEPLOYMENT.md](./DEPLOYMENT.md)
-- **Firebase Docs**: https://firebase.google.com/docs
-
----
-
-For issues or advanced setup, see [DEPLOYMENT.md](./DEPLOYMENT.md).
-
----
-
-**Designed by edentv** - Creator Studio
+`/api/submit_opinion` and `/api/admin_upload` return HTTP 410, including for cached clients. Their Hosting rewrites remain so callers receive that response instead of web app HTML.

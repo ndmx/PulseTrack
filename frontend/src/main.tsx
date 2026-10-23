@@ -8,12 +8,16 @@ import SnapstatsPage from "./routes/SnapstatsPage"
 import PulseTrackPage from "./routes/PulseTrackPage"
 import SafetyPage from "./routes/SafetyPage"
 import IncidentPage from "./routes/IncidentPage"
+import { applyLuminaTheme } from "./luminaTheme"
 import "./styles.css"
+
+applyLuminaTheme()
 
 const qc = new QueryClient()
 const router = createBrowserRouter([
   { path: "/", element: <SafetyPage />, errorElement: <RouteError /> },
   { path: "/safety", element: <SafetyPage />, errorElement: <RouteError /> },
+  { path: "/feed", element: <SafetyPage />, errorElement: <RouteError /> },
   { path: "/incident/:id", element: <IncidentPage />, errorElement: <RouteError /> },
   { path: "/i/:id", element: <IncidentPage />, errorElement: <RouteError /> },
   { path: "/insights", element: <App />, errorElement: <RouteError /> },

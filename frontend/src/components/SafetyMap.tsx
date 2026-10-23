@@ -38,10 +38,10 @@ export default function SafetyMap({ incidents, center, onSelect, visible }: Prop
     layer.clearLayers()
     incidents.forEach(incident => {
       if (incident.locationPending || incident.latitude === null || incident.longitude === null) return
-      const color = incident.severity === "Urgent" ? "#ff696b" : incident.severity === "High" ? "#ffaf67" : "#42d2ad"
+      const color = incident.severity === "Urgent" ? "#c8102e" : incident.severity === "High" ? "#d9610a" : "#0e9a88"
       const marker = L.circleMarker([incident.latitude, incident.longitude], {
         radius: incident.severity === "Urgent" ? 10 : 8,
-        color: "#0b1420", weight: 2, fillColor: color, fillOpacity: 0.94,
+        color: "#fffcf7", weight: 2, fillColor: color, fillOpacity: 0.94,
       })
       marker.on("click", () => onSelect(incident.id))
       marker.addTo(layer)
