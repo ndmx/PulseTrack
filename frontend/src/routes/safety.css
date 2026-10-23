@@ -71,6 +71,9 @@
 .safety-feed-head h2, .safety-map-head h2 { margin: 0; font-size: 21px; font-weight: 710; letter-spacing: -.035em; line-height: 1.1; }
 .safety-feed-head .safety-eyebrow, .safety-map-head .safety-eyebrow { margin-bottom: 5px; }
 .safety-count, .safety-map-head > span { padding-bottom: 2px; color: var(--muted); font-size: 12px; white-space: nowrap; }
+.safety-scopes { display: flex; gap: 5px; overflow-x: auto; padding: 0 20px 15px; }
+.safety-scopes button { min-height: 36px; padding: 0 11px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--muted); font-size: 12px; font-weight: 650; white-space: nowrap; }
+.safety-scopes button:hover, .safety-scopes button.selected { border-color: var(--line); background: #e4eee9; color: var(--ink); }
 .safety-tools { display: grid; grid-template-columns: minmax(0, 1fr) minmax(150px, .58fr); gap: 10px; padding: 0 20px 18px; }
 .safety-search, .safety-category { display: grid; gap: 5px; min-width: 0; }
 .safety-control-label { color: var(--muted); font-size: 11px; font-weight: 650; }
@@ -161,6 +164,7 @@
   .safety-feed, .safety-map-panel { min-height: 0; }
   .safety-feed-head, .safety-map-head { padding: 18px 16px 13px; }
   .safety-tools { grid-template-columns: 1fr; gap: 10px; padding: 0 16px 16px; }
+  .safety-scopes { padding: 0 16px 14px; }
   .safety-empty { min-height: 270px; padding: 30px 20px; }
   .safety-feed-note { padding: 12px 16px; }
   .safety-map-wrap, .safety-map-canvas { min-height: 450px; }

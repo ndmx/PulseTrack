@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import SafetyMap from "../components/SafetyMap"
 import SafetyHeader from "../components/SafetyHeader"
-import { categoryNames, reportingAvailable, submitReport, subscribeIncidents, type IncidentCategory, type IncidentSeverity, type ReportDraft, type SafetyIncident } from "../lib/safety"
+import { categoryNames, matchesFeedScope, reportingAvailable, submitReport, subscribeIncidents, type FeedScope, type IncidentCategory, type IncidentSeverity, type ReportDraft, type SafetyIncident } from "../lib/safety"
 import "./safety.css"
 
 const filters: Array<"all" | IncidentCategory> = ["all", ...Object.keys(categoryNames) as IncidentCategory[]]
@@ -100,6 +100,7 @@ export default function SafetyPage() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(true)
   const [category, setCategory] = useState<"all" | IncidentCategory>("all")
+  const [scope, setScope] = useState<FeedScope>("all")
   const [search, setSearch] = useState("")
   const [center, setCenter] = useState<[number, number] | null>(null)
   const [nearbyOnly, setNearbyOnly] = useState(false)
@@ -116,6 +117,7 @@ export default function SafetyPage() {
   useEffect(() => { if (reportingAvailable && new URLSearchParams(location.search).has("report")) setShowReport(true) }, [location.search])
 
   const filtered = useMemo(() => incidents.filter(incident => {
+    if (!matchesFeedScope(incident, scope)) return false
     if (category !== "all" && incident.category !== category) return false
     if (nearbyOnly && center) {
       if (incident.latitude === null || incident.longitude === null) return false
@@ -123,8 +125,8 @@ export default function SafetyPage() {
     }
     const queryText = search.trim().toLowerCase()
     return !queryText || [incident.title, incident.summary, incident.neighborhood, incident.category].some(value => value.toLowerCase().includes(queryText))
-  }), [incidents, category, search, nearbyOnly, center])
-  const publicLocationCount = filtered.filter(item => !item.locationPending && item.latitude !== null && item.longitude !== null).length
+  }), [incidents, scope, category, search, nearbyOnly, center])
+  const publicLocationCount = incidents.filter(item => !item.locationPending && item.latitude !== null && item.longitude !== null).length
 
   const selectIncident = useCallback((id: string) => navigate(`/incident/${encodeURIComponent(id)}`), [navigate])
 
@@ -144,9 +146,10 @@ export default function SafetyPage() {
       <section className="safety-intro"><div><p className="safety-eyebrow">PulseTrackr · Community safety</p><h1>{mobileView === "feed" ? "Community feed" : "Safety around you"}</h1><p>See public incident reports from the last 24 hours. Choose a report to read its details, or share what you have witnessed.</p></div><div className="safety-intro-actions"><button type="button" className="safety-location-button" onClick={locate}>{nearbyOnly ? "Update location" : "Near me"}</button>{reportingAvailable && <button type="button" className="safety-primary-button" onClick={() => setShowReport(true)}>Report an incident</button>}</div></section>
       <div className="safety-disclaimer"><strong>Before you act</strong><span>Community reports may be unconfirmed. For immediate danger, contact local emergency services.</span></div>
       <section className={`safety-workspace safety-workspace--${mobileView}`} aria-label="Live incident map and feed">
-        <div className={`safety-map-panel ${mobileView === "feed" ? "safety-mobile-hidden" : ""}`}><div className="safety-map-head"><div><p className="safety-eyebrow">Live map</p><h2>Map</h2></div><span>{publicLocationCount} public {publicLocationCount === 1 ? "location" : "locations"}</span></div><div className="safety-map-wrap"><SafetyMap incidents={filtered} center={center} onSelect={selectIncident} visible={mobileView === "map"} /></div><div className="safety-map-foot">{publicLocationCount === 0 ? "No public report locations in the last 24 hours. Use Near me to center on your area." : "Pins use approximate public locations. Some reports stay off the map to protect privacy."}</div></div>
+        <div className={`safety-map-panel ${mobileView === "feed" ? "safety-mobile-hidden" : ""}`}><div className="safety-map-head"><div><p className="safety-eyebrow">Live map</p><h2>Map</h2></div><span>{publicLocationCount} public {publicLocationCount === 1 ? "location" : "locations"}</span></div><div className="safety-map-wrap"><SafetyMap incidents={incidents} center={center} onSelect={selectIncident} visible={mobileView === "map"} /></div><div className="safety-map-foot">{publicLocationCount === 0 ? "No public report locations in the last 24 hours. Use Near me to center on your area." : "Pins use approximate public locations. Some reports stay off the map to protect privacy."}</div></div>
         <div className={`safety-feed ${mobileView === "map" ? "safety-mobile-hidden" : ""}`}>
           <div className="safety-feed-head"><div><p className="safety-eyebrow">Last 24 hours</p><h2>Latest reports</h2></div><span className="safety-count">{filtered.length} {filtered.length === 1 ? "report" : "reports"}</span></div>
+          {incidents.length > 0 && <div className="safety-scopes" role="group" aria-label="Filter reports by status">{(["all", "priority", "new", "verified"] as FeedScope[]).map(item => <button key={item} type="button" aria-pressed={scope === item} className={scope === item ? "selected" : ""} onClick={() => setScope(item)}>{item === "all" ? "All" : item.charAt(0).toUpperCase() + item.slice(1)}</button>)}</div>}
           {incidents.length > 0 && <div className="safety-tools"><label className="safety-search"><span className="safety-control-label">Search</span><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Area or keyword" aria-label="Search reports or areas" /></label><label className="safety-category"><span className="safety-control-label">Category</span><select value={category} onChange={event => setCategory(event.target.value as "all" | IncidentCategory)}>{filters.map(item => <option key={item} value={item}>{item === "all" ? "All categories" : categoryNames[item]}</option>)}</select></label></div>}
           {locationMessage && <p className="safety-location-message" role="status">{locationMessage} {nearbyOnly && <button onClick={() => { setNearbyOnly(false); setLocationMessage("") }}>Show all</button>}</p>}
           {error ? <div className="safety-empty" role="alert"><h3>Reports are unavailable</h3><p>{error}</p></div> : loading ? <div className="safety-empty"><p>Loading recent reports…</p></div> : filtered.length === 0 ? <div className="safety-empty"><h3>{incidents.length === 0 ? "No recent reports" : "No matching reports"}</h3><p>{incidents.length === 0 ? "No public reports have been shared in the last 24 hours. New reports will appear here." : "Try a different search or category, or show all areas."}</p>{incidents.length > 0 && <button type="button" className="safety-clear-button" onClick={() => { setSearch(""); setCategory("all"); setNearbyOnly(false); setLocationMessage("") }}>Clear filters</button>}</div> : <div className="safety-list">{filtered.map(incident => <button type="button" key={incident.id} className="safety-incident" onClick={() => selectIncident(incident.id)}><div className="safety-incident-top"><span className={`safety-severity severity-${incident.severity.toLowerCase()}`}>{incident.severity}</span><span>{timeLabel(incident.reportedAt)}</span></div><h3>{incident.title}</h3><p>{incident.summary}</p><div className="safety-incident-meta"><span>{categoryNames[incident.category]}</span><span>·</span><span>{incident.neighborhood}</span>{incident.locationPending && <span className="safety-private-location">Location withheld</span>}</div></button>)}</div>}
