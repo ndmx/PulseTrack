@@ -14,7 +14,7 @@ website home page.
 | Incident detail and sharing | App detail and `/i/{id}` link | Browser detail at `/incident/{id}`; shared link renders server-side preview |
 | SOS and trusted contacts | App only | Link to the app and explain requirements; no browser SOS control |
 | Escort, background location, push alerts | App only | Keep on iPhone, where device and operating-system support exist |
-| Political sentiment and demographics | Earlier website | Retain direct links at `/insights` and `/snapstats` as archive material; remove them from the primary safety navigation |
+| Voter and community data | Earlier website | Keep `/insights` and `/snapstats` as direct links outside the primary safety navigation; retire candidate opinion collection and scheduled sentiment processing |
 
 ## Shared Firebase ownership
 
