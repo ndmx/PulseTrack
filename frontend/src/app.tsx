@@ -82,7 +82,7 @@ export default function App() {
           <header className="section-heading"><div><p className="section-eyebrow">Community estimates</p><h2>Ethnic groups in the dataset</h2></div></header>
           <p className="muted small">Existing population estimates, shown for geographic context. These are not voter preferences or predictions.</p>
           {tribeError && <Notice type="error">Community estimates are unavailable right now.</Notice>}
-          {tribes.length > 0 && <div className="civic-table-wrap"><table className="civic-table"><thead><tr><th>Group</th><th>Estimated share</th><th>Main states listed</th></tr></thead><tbody>{tribes.map((tribe) => <tr key={tribe.Ethnic_Group}><th scope="row">{tribe.Ethnic_Group}</th><td>{number(tribe.Percentage).toFixed(1)}%</td><td>{tribe.Main_States}</td></tr>)}</tbody></table></div>}
+          {tribes.length > 0 && <div className="civic-table-wrap"><table className="civic-table"><thead><tr><th>Group</th><th>Estimated share</th><th>Main states listed</th></tr></thead><tbody>{tribes.map((tribe) => <tr key={tribe.Ethnic_Group}><th scope="row">{tribe.Ethnic_Group}</th><td>{number(tribe.Percentage).toFixed(1)}%</td><td>{tribe.Main_States.replace(/,/g, ", ")}</td></tr>)}</tbody></table></div>}
           <Link className="civic-explorer-link" to="/snapstats">Explore all geographic data →</Link>
         </section>
       </div>
