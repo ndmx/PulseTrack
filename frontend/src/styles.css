@@ -1,13 +1,26 @@
 :root {
-  --pulse-bg: #f3ece1;
-  --pulse-card: #fffcf7;
-  --pulse-border: #d7d0c5;
-  --pulse-text: #15140f;
-  --pulse-muted: #625f58;
-  --pulse-primary: #15140f;
-  --pulse-accent: #08796e;
+  --ls-bg: #f3ece1;
+  --ls-surface: #fffcf7;
+  --ls-border-visible: rgba(21, 20, 15, .16);
+  --ls-text: #15140f;
+  --ls-text-muted: rgba(21, 20, 15, .74);
+  --ls-accent: #0e9a88;
+  --pulse-danger: #c8102e;
+  --pulse-positive: #1e7a4d;
+  --pulse-bg: var(--ls-bg);
+  --pulse-card: var(--ls-surface);
+  --pulse-border: var(--ls-border-visible);
+  --pulse-text: var(--ls-text);
+  --pulse-muted: var(--ls-text-muted);
+  --pulse-primary: var(--ls-text);
+  --pulse-accent: var(--ls-accent);
   --pulse-shadow: none;
 }
+
+@font-face { font-family: Manrope; src: url('/fonts/Manrope-Regular.ttf') format('truetype'); font-weight: 400; font-display: swap; }
+@font-face { font-family: Manrope; src: url('/fonts/Manrope-SemiBold.ttf') format('truetype'); font-weight: 600; font-display: swap; }
+@font-face { font-family: Manrope; src: url('/fonts/Manrope-Bold.ttf') format('truetype'); font-weight: 700 900; font-display: swap; }
+@font-face { font-family: 'Cormorant Garamond'; src: url('/fonts/CormorantGaramond-SemiBold.ttf') format('truetype'); font-weight: 600; font-display: swap; }
 
 * {
   box-sizing: border-box;
@@ -15,7 +28,7 @@
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   background: var(--pulse-bg);
   color: var(--pulse-text);
   line-height: 1.5;
@@ -59,9 +72,11 @@ a {
 
 .hero-content h1 {
   margin: 0;
-  font-size: clamp(32px, 3.8vw, 48px);
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: clamp(42px, 4.4vw, 58px);
+  font-weight: 600;
   line-height: 1.08;
-  letter-spacing: -.05em;
+  letter-spacing: -.025em;
 }
 
 .hero-lede {
@@ -88,7 +103,7 @@ a {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 42px;
+  min-height: 44px;
   padding: 9px 16px;
   border-radius: 6px;
   font-size: 13px;
@@ -703,7 +718,7 @@ a {
 .section-nav { display: flex; align-items: stretch; gap: 24px; min-height: 52px; border-bottom: 1px solid var(--pulse-border); }
 .section-nav a { display: inline-flex; align-items: center; border-bottom: 2px solid transparent; color: var(--pulse-muted); font-size: 13px; font-weight: 580; text-decoration: none; white-space: nowrap; }
 .section-nav a:hover, .section-nav a.current { border-color: var(--pulse-text); color: var(--pulse-text); }
-.section-nav .section-brand { margin-right: auto; color: var(--pulse-text); font-size: 19px; font-weight: 780; letter-spacing: -.04em; }
+.section-nav .section-brand { margin-right: auto; color: var(--pulse-text); font-family: 'Cormorant Garamond', Georgia, serif; font-size: 27px; font-weight: 600; letter-spacing: -.035em; }
 .app-shell :is(a, button, input, textarea, select):focus-visible { outline: 2px solid var(--pulse-accent); outline-offset: 3px; }
 .app-shell .container { max-width: 1280px; padding-left: 32px; padding-right: 32px; }
 .app-shell .hero-content nav { margin-bottom: 27px; }
@@ -713,7 +728,7 @@ a {
   .app-shell .container { padding-left: 16px; padding-right: 16px; }
   .section-nav { flex-wrap: wrap; gap: 0 22px; min-height: 0; }
   .section-nav .section-brand { flex-basis: 100%; height: 43px; }
-  .section-nav a:not(.section-brand) { min-height: 39px; font-size: 12px; }
+  .section-nav a:not(.section-brand) { min-height: 44px; font-size: 12px; }
   .hero-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .hero-approval { grid-template-columns: 1fr; }
   .hero-band { padding-bottom: 10px; }

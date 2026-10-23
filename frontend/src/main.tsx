@@ -8,7 +8,10 @@ import SnapstatsPage from "./routes/SnapstatsPage"
 import PulseTrackPage from "./routes/PulseTrackPage"
 import SafetyPage from "./routes/SafetyPage"
 import IncidentPage from "./routes/IncidentPage"
+import { applyLuminaTheme } from "./luminaTheme"
 import "./styles.css"
+
+applyLuminaTheme()
 
 const qc = new QueryClient()
 const router = createBrowserRouter([
