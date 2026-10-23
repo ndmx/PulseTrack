@@ -1,8 +1,10 @@
 # PulseTrack
 
-Real-time sentiment tracking for Nigerian political candidates using user opinions and NLP, focused on 2027 elections.
+PulseTrack is a community monitoring website. Live safety reports from the PulseTrackr iPhone app are the primary view; the earlier Nigerian civic insights and Snapstats remain available under `/insights` and `/snapstats`.
 
 **Live Site**: https://pulsetracker.org/
+
+The web safety feed reads the shared `safety_incidents_public` collection in real time and shows reports from the last 24 hours. Browser reporting is gated behind Firebase App Check configuration. The iPhone app remains the home for SOS, trusted contacts, escort, and background location. See [the unification plan](docs/web-unification.md) for the feature split and release dependencies.
 
 ---
 
