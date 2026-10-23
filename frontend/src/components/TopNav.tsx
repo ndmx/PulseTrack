@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom"
 
 function isActivePath(currentPath: string, target: string): boolean {
   if (target === "/pulsetrack") {
-    return currentPath === "/" || currentPath.startsWith("/pulsetrack")
+    return currentPath.startsWith("/pulsetrack") || currentPath.startsWith("/insights")
   }
   return currentPath.startsWith(target)
 }
@@ -35,7 +35,8 @@ export default function TopNav() {
 
   return (
     <nav style={{ display: "flex", gap: 12, marginBottom: 16 }}>
-      <Link to="/pulsetrack" style={isActivePath(path, "/pulsetrack") ? activeStyle : inactiveStyle}>PulseTrack</Link>
+      <Link to="/" style={path === "/" || path.startsWith("/safety") ? activeStyle : inactiveStyle}>Live safety</Link>
+      <Link to="/insights" style={isActivePath(path, "/pulsetrack") ? activeStyle : inactiveStyle}>Civic insights</Link>
       <Link to="/snapstats" style={isActivePath(path, "/snapstats") ? activeStyle : inactiveStyle}>Snapstats</Link>
     </nav>
   )

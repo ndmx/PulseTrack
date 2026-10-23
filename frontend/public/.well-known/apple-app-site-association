@@ -1,0 +1,14 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appID": "4ZSXLWH9W2.org.pulsetracker.pulsetrackr.pulsetrackr",
+        "components": [
+          {
+            "/": "/i/*"
+          }
+        ]
+      }
+    ]
+  }
+}
