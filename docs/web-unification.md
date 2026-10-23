@@ -7,14 +7,14 @@ website home page.
 
 | Capability | iPhone app | Website direction |
 | --- | --- | --- |
-| Live incident feed and approximate map | Existing | Primary website view; last 24 hours and 150 most recent public reports |
+| Live incident feed and approximate map | Existing | Map-first home and `/feed`; last 24 hours and 150 most recent public reports, including a map when the feed is empty |
 | Nearby discovery | Location-aware app feed | Browser location filter over current snapshot; full geoquery remains future work |
 | Community incident report | App capture with optional evidence | Text and location submission wired to the same TypeScript callable; switch on only after web App Check setup |
 | Community signals and concern reports | Existing callables and app UI | Add after browser identity, moderation, and abuse handling are verified |
 | Incident detail and sharing | App detail and `/i/{id}` link | Browser detail at `/incident/{id}`; shared link renders server-side preview |
 | SOS and trusted contacts | App only | Link to the app and explain requirements; no browser SOS control |
 | Escort, background location, push alerts | App only | Keep on iPhone, where device and operating-system support exist |
-| Political sentiment and demographics | Earlier website | Retain at `/insights` and `/snapstats` while safety becomes the primary entry point |
+| Political sentiment and demographics | Earlier website | Retain direct links at `/insights` and `/snapstats` as archive material; remove them from the primary safety navigation |
 
 ## Shared Firebase ownership
 

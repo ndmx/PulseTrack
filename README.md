@@ -1,34 +1,31 @@
 # PulseTrack
 
-PulseTrack is a community monitoring website. Live safety reports from the PulseTrackr iPhone app are the primary view; the earlier Nigerian civic insights and Snapstats remain available under `/insights` and `/snapstats`.
+PulseTrackr is PulseTrack's community safety product on iPhone and the web. The website follows the app's core Map → Feed → Report flow; the iPhone app also provides SOS, trusted-contact alerts, and escorted walks. Earlier Nigerian civic insights and Snapstats remain at their existing URLs as archive material, outside the safety navigation.
 
 **Live Site**: https://pulsetracker.org/
 
-The web safety feed reads the shared `safety_incidents_public` collection in real time and shows reports from the last 24 hours. Browser reporting is gated behind Firebase App Check configuration. The iPhone app remains the home for SOS, trusted contacts, escort, and background location. See [the unification plan](docs/web-unification.md) for the feature split and release dependencies.
+The web map and feed read the shared `safety_incidents_public` collection in real time and show reports from the last 24 hours. Browser reporting uses the app's `submit_incident` callable and requires Firebase App Check configuration. See [the unification plan](docs/web-unification.md) for the feature split and release dependencies.
 
 ---
 
-## ✨ Key Features
+## Current product surfaces
 
-1. **Modern React Frontend** (Vite + TypeScript)  
-   - Interactive approval rating cards, trend charts, and sentiment visualizations  
-   - Geographic data explorer with Leaflet maps (Snapstats)  
-   - State-level demographic insights and filtering  
-   - User opinion submission form
+1. **PulseTrackr on the web** (React + Vite + TypeScript)
+   - Map-first community safety home, including an empty map when no public reports are recent
+   - Live feed, nearby filter, category search, incident detail and sharing
+   - Browser incident reporting when Firebase App Check is configured
 
-2. **Firebase Full-Stack**  
-   - **Hosting**: Global CDN for static assets  
-   - **Database**: Cloud Firestore (NoSQL, serverless, no hibernation)  
-   - **Functions**: Python backend for ETL pipeline
+2. **PulseTrackr on iPhone**
+   - Map, Feed, Report and Settings
+   - SOS, trusted contacts, escorted walks, push alerts and background location
 
-3. **Automated ETL Pipeline**  
-   - Runs every 10 minutes via Cloud Scheduler  
-   - Extracts user submissions, analyzes sentiment (TextBlob + NLTK)  
-   - Calculates approval scores and aggregates by candidate/state/time
+3. **Civic data archive**
+   - Earlier approval, sentiment and demographic views remain at `/insights` and `/snapstats`
+   - Their Python ETL pipeline is separate from the PulseTrackr safety reporting service
 
 ---
 
-## 🏗️ Architecture
+## Legacy civic insights architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐

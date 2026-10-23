@@ -17,6 +17,7 @@ const qc = new QueryClient()
 const router = createBrowserRouter([
   { path: "/", element: <SafetyPage />, errorElement: <RouteError /> },
   { path: "/safety", element: <SafetyPage />, errorElement: <RouteError /> },
+  { path: "/feed", element: <SafetyPage />, errorElement: <RouteError /> },
   { path: "/incident/:id", element: <IncidentPage />, errorElement: <RouteError /> },
   { path: "/i/:id", element: <IncidentPage />, errorElement: <RouteError /> },
   { path: "/insights", element: <App />, errorElement: <RouteError /> },
