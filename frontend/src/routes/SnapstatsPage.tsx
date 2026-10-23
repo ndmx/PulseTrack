@@ -13,8 +13,6 @@ type Feature = {
 
 type ZoneStats = Record<string, { stateCount: number; totalArea: number }>
 
-type PipelineState = "live" | "syncing" | "degraded"
-
 const formatLargeNumber = (value?: number) => {
   if (value === undefined || value === null || !Number.isFinite(value)) return "—"
   const abs = Math.abs(value)
@@ -66,12 +64,12 @@ export function SnapstatsView({ compact = false }: { compact?: boolean }) {
   }, [])
 
   const zoneColors: Record<string, string> = useMemo(() => ({
-    "North Central": "#2E8B57",
-    "North East": "#4169E1",
-    "North West": "#DC143C",
-    "South East": "#FF8C00",
-    "South South": "#9932CC",
-    "South West": "#FFD700"
+    "North Central": "#497A68",
+    "North East": "#617D9B",
+    "North West": "#A76468",
+    "South East": "#C08B50",
+    "South South": "#816D9A",
+    "South West": "#B49B63"
   }), [])
 
   const [zoneBarData, setZoneBarData] = useState<Array<{ zone: string; stateCount: number }>>([])
@@ -169,34 +167,12 @@ export function SnapstatsView({ compact = false }: { compact?: boolean }) {
 
   const heroMetrics = useMemo(
     () => [
-      { label: "States mapped", value: stateCount ? stateCount.toString().padStart(2, "0") : "—", helper: "GeoJSON features" },
+      { label: "Areas mapped", value: stateCount ? stateCount.toString() : "—", helper: "States and FCT" },
       { label: "Zones covered", value: zoneCoverage ? zoneCoverage.toString() : "—", helper: "Geo-political zones" },
-      { label: "Tribes tracked", value: tribes.length ? tribes.length.toString() : "—", helper: "Ethnic datasets" },
+      { label: "Groups listed", value: tribes.length ? tribes.length.toString() : "—", helper: "Population data" },
       { label: "Party sets", value: partyStats.length ? partyStats.length.toString() : "—", helper: "Dominant parties" },
     ],
     [partyStats.length, stateCount, tribes.length, zoneCoverage]
-  )
-
-  const datasetStatuses = useMemo(
-    () =>
-      [
-        {
-          label: "GeoJSON feed",
-          state: error ? ("degraded" as PipelineState) : stateCount ? ("live" as PipelineState) : ("syncing" as PipelineState),
-          detail: error ? "Failed to fetch boundary data" : stateCount ? `${stateCount} states online` : "Fetching boundaries",
-        },
-        {
-          label: "Tribal stats",
-          state: tribes.length ? ("live" as PipelineState) : ("syncing" as PipelineState),
-          detail: tribes.length ? `${tribes.length} ethnic groups enriched` : "Loading tribe dataset",
-        },
-        {
-          label: "Party dominance",
-          state: partyStats.length ? ("live" as PipelineState) : ("syncing" as PipelineState),
-          detail: partyStats.length ? "Party distribution ready" : "Waiting for derived stats",
-        },
-      ],
-    [error, partyStats.length, stateCount, tribes.length]
   )
 
   const zoneLegend = useMemo(() => Object.entries(zoneColors), [zoneColors])
@@ -211,18 +187,18 @@ export function SnapstatsView({ compact = false }: { compact?: boolean }) {
     <header className="hero-band hero-band--snap">
       <div className="container hero-inner">
         <div className="hero-content">
-          <p className="eyebrow">Nationwide Snapstats</p>
-          <h1>See Nigeria&apos;s federated intelligence at a glance</h1>
-          <p className="hero-lede">
-            Territory boundaries, tribal concentrations, and political tilt — unified in a single control center so campaigns can plan faster.
-          </p>
           <TopNav />
+          <p className="eyebrow">Nigeria · State data</p>
+          <h1>State and zone data</h1>
+          <p className="hero-lede">
+            Browse state boundaries, population estimates, and regional data on a map or in a table.
+          </p>
           <div className="hero-actions">
             <button type="button" className="btn btn-primary" onClick={handleScrollToMap}>
-              View interactive map
+              Open map
             </button>
             <a className="btn btn-ghost" href="#snap-data-table">
-              Browse dataset
+              View table
             </a>
           </div>
           <div className="hero-metrics">
@@ -235,25 +211,6 @@ export function SnapstatsView({ compact = false }: { compact?: boolean }) {
             ))}
           </div>
         </div>
-        <div className="hero-panel panel">
-          <header className="section-heading compact">
-            <div>
-              <p className="section-eyebrow">Dataset pipelines</p>
-              <h2>Always-on sync</h2>
-            </div>
-          </header>
-          <ul className="status-list">
-            {datasetStatuses.map((item) => (
-              <li key={item.label}>
-                <div>
-                  <strong>{item.label}</strong>
-                  <p className="muted">{item.detail}</p>
-                </div>
-                <span className={`status-pill status-${item.state}`}>{item.state}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
       </div>
     </header>
   )
@@ -264,8 +221,8 @@ export function SnapstatsView({ compact = false }: { compact?: boolean }) {
             <section className="panel" ref={mapSectionRef}>
               <header className="section-heading">
                 <div>
-                  <p className="section-eyebrow">Exploration</p>
-                  <h2>Snapstats control center</h2>
+                  <p className="section-eyebrow">Explore</p>
+                  <h2>State explorer</h2>
                 </div>
                 <span className="section-note">Switch tabs to explore each layer</span>
               </header>
@@ -339,7 +296,7 @@ export function SnapstatsView({ compact = false }: { compact?: boolean }) {
                             <YAxis />
                             <Tooltip />
                             <Legend />
-                            <Bar dataKey="stateCount" name="States" fill="#0FA958" />
+                            <Bar dataKey="stateCount" name="States" fill="#497A68" />
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
@@ -349,7 +306,7 @@ export function SnapstatsView({ compact = false }: { compact?: boolean }) {
                           <PieChart>
                             <Pie data={zonePieData} nameKey="name" dataKey="value" innerRadius={60} outerRadius={100}>
                               {zonePieData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={zoneColors[entry.name] || "#0D6EFD"} />
+                                <Cell key={`cell-${index}`} fill={zoneColors[entry.name] || "#78746e"} />
                               ))}
                             </Pie>
                             <Legend />
@@ -372,7 +329,7 @@ export function SnapstatsView({ compact = false }: { compact?: boolean }) {
                               <YAxis />
                               <Tooltip />
                               <Legend />
-                              <Bar dataKey="Estimated_Population_Millions" name="Est. Pop (M)" fill="#198754" />
+                              <Bar dataKey="Estimated_Population_Millions" name="Est. Pop (M)" fill="#497A68" />
                             </BarChart>
                           </ResponsiveContainer>
                         </div>
@@ -382,7 +339,7 @@ export function SnapstatsView({ compact = false }: { compact?: boolean }) {
                             <PieChart>
                               <Pie data={tribes.map((t) => ({ name: t.Ethnic_Group, value: t.Percentage }))} nameKey="name" dataKey="value" innerRadius={60} outerRadius={100}>
                                 {tribes.map((t, i) => (
-                                  <Cell key={i} fill={["#0FA958", "#0D6EFD", "#FFC107", "#DC3545", "#6F42C1", "#20C997", "#FD7E14"][i % 7]} />
+                                  <Cell key={i} fill={["#497A68", "#617D9B", "#B49B63", "#A76468", "#816D9A", "#6D8C84", "#C08B50"][i % 7]} />
                                 ))}
                               </Pie>
                               <Legend />
@@ -404,7 +361,7 @@ export function SnapstatsView({ compact = false }: { compact?: boolean }) {
                             <YAxis />
                             <Tooltip />
                             <Legend />
-                            <Bar dataKey="stateCount" name="States" fill="#6F42C1" />
+                            <Bar dataKey="stateCount" name="States" fill="#816D9A" />
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
@@ -426,7 +383,7 @@ export function SnapstatsView({ compact = false }: { compact?: boolean }) {
             <section className="panel">
               <header className="section-heading">
                 <div>
-                  <p className="section-eyebrow">Zone palette</p>
+                  <p className="section-eyebrow">Map regions</p>
                   <h2>Color key</h2>
                 </div>
               </header>
@@ -436,7 +393,6 @@ export function SnapstatsView({ compact = false }: { compact?: boolean }) {
                     <span style={{ background: color }} />
                     <div>
                       <strong>{zone}</strong>
-                      <p className="muted small">Leaflet + chart palette</p>
                     </div>
                   </li>
                 ))}
@@ -465,27 +421,6 @@ export function SnapstatsView({ compact = false }: { compact?: boolean }) {
               </div>
               <p className="muted small">* Sum based on available static demographics.</p>
             </section>
-            {compact && (
-              <section className="panel">
-                <header className="section-heading">
-                  <div>
-                    <p className="section-eyebrow">Dataset pipelines</p>
-                    <h2>Sync health</h2>
-                  </div>
-                </header>
-                <ul className="status-list">
-                  {datasetStatuses.map((item) => (
-                    <li key={item.label}>
-                      <div>
-                        <strong>{item.label}</strong>
-                        <p className="muted">{item.detail}</p>
-                      </div>
-                      <span className={`status-pill status-${item.state}`}>{item.state}</span>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
           </aside>
         </div>
   );

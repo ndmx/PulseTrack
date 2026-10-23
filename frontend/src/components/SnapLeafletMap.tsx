@@ -54,12 +54,12 @@ export const SnapLeafletMap: React.FC<SnapLeafletMapProps> = ({ geojsonUrl, heig
   }, [])
 
 	const zoneColors: Record<string, string> = useMemo(() => ({
-		"North Central": "#2E8B57",
-		"North East": "#4169E1",
-		"North West": "#DC143C",
-		"South East": "#FF8C00",
-		"South South": "#9932CC",
-		"South West": "#FFD700",
+		"North Central": "#497A68",
+		"North East": "#617D9B",
+		"North West": "#A76468",
+		"South East": "#C08B50",
+		"South South": "#816D9A",
+		"South West": "#B49B63",
 	}), [])
 
 	const style = (feature: any): PathOptions => {
@@ -87,10 +87,10 @@ export const SnapLeafletMap: React.FC<SnapLeafletMapProps> = ({ geojsonUrl, heig
     if (demo) {
       // Party color coding
       const partyColors: Record<string, string> = {
-        'APC': '#E53935',
-        'PDP': '#00A86B',
-        'LP': '#DC143C',
-        'NNPP': '#0D6EFD'
+        'APC': '#b4544f',
+        'PDP': '#3d8064',
+        'LP': '#a55b6f',
+        'NNPP': '#4e7390'
       }
       const partyColor = partyColors[demo.political_affiliation] || '#6C757D'
       
@@ -208,7 +208,7 @@ export const SnapLeafletMap: React.FC<SnapLeafletMapProps> = ({ geojsonUrl, heig
 			</MapContainer>
       {!error && (
         <div style={{ fontSize: 12, color: '#666', padding: 8 }}>
-          {data ? `Loaded features: ${data?.features?.length || 0}` : 'Loading map...'}
+          {data ? `${data.features?.length || 0} areas shown` : 'Loading map...'}
         </div>
       )}
 		</div>

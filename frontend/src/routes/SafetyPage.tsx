@@ -33,6 +33,12 @@ function ReportDialog({ onClose, onCreated }: { onClose: () => void, onCreated: 
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState("")
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") onClose() }
+    document.addEventListener("keydown", onKeyDown)
+    return () => document.removeEventListener("keydown", onKeyDown)
+  }, [onClose])
+
   function locate() {
     if (!navigator.geolocation) { setMessage("This browser cannot provide a location."); return }
     setMessage("Requesting location…")
@@ -67,9 +73,11 @@ function ReportDialog({ onClose, onCreated }: { onClose: () => void, onCreated: 
 
   return <div className="safety-dialog-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}>
     <section className="safety-dialog" role="dialog" aria-modal="true" aria-labelledby="report-heading">
-      <div className="safety-dialog-head"><div><p className="safety-eyebrow">Community report</p><h2 id="report-heading">Report what you see</h2></div><button type="button" className="safety-icon-button" onClick={onClose} aria-label="Close report form">×</button></div>
-      <p className="safety-muted">Share what happened, where, and when. Reports are community information and may be unconfirmed.</p>
+      <div className="safety-dialog-head"><div><p className="safety-eyebrow">New community report</p><h2 id="report-heading">Report an incident</h2></div><button type="button" className="safety-icon-button" onClick={onClose} aria-label="Close report form">×</button></div>
+      <p className="safety-muted">Share what happened and where. Your current location is required to send a report.</p>
       <form onSubmit={submit} className="safety-form">
+        <button autoFocus type="button" className="safety-location-button" onClick={locate}>{coordinate ? "Location added · Update" : "Add current location (required)"}</button>
+        {message && <p role="status" className="safety-form-message">{message}</p>}
         <label>Short title<input required maxLength={120} value={title} onChange={event => setTitle(event.target.value)} placeholder="What happened?" /></label>
         <label>Details<textarea required maxLength={2000} rows={4} value={summary} onChange={event => setSummary(event.target.value)} placeholder="Include useful details without naming private individuals." /></label>
         <div className="safety-form-row">
@@ -77,8 +85,6 @@ function ReportDialog({ onClose, onCreated }: { onClose: () => void, onCreated: 
           <label>Severity<select value={severity} onChange={event => setSeverity(event.target.value as IncidentSeverity)}>{["Low", "Medium", "High", "Urgent"].map(value => <option key={value}>{value}</option>)}</select></label>
         </div>
         <label>Area or landmark<input maxLength={120} value={neighborhood} onChange={event => setNeighborhood(event.target.value)} placeholder="Optional" /></label>
-        <button type="button" className="safety-location-button" onClick={locate}>{coordinate ? "✓ Location added · update" : "◎ Add current location"}</button>
-        {message && <p role="status" className="safety-form-message">{message}</p>}
         <p className="safety-fineprint">Your exact location is used by the backend for validation. Public location is revealed only under the app's privacy policy. Do not use PulseTrack to request emergency help.</p>
         <button className="safety-primary-button" type="submit" disabled={busy}>{busy ? "Sending report…" : "Send report"}</button>
       </form>
@@ -113,6 +119,7 @@ export default function SafetyPage() {
     const queryText = search.trim().toLowerCase()
     return !queryText || [incident.title, incident.summary, incident.neighborhood, incident.category].some(value => value.toLowerCase().includes(queryText))
   }), [incidents, category, search, nearbyOnly, center])
+  const publicLocationCount = filtered.filter(item => !item.locationPending && item.latitude !== null && item.longitude !== null).length
 
   const selectIncident = useCallback((id: string) => navigate(`/incident/${encodeURIComponent(id)}`), [navigate])
 
@@ -127,24 +134,23 @@ export default function SafetyPage() {
   }
 
   return <div className="safety-site">
-    <header className="safety-header"><Link to="/" className="safety-brand"><span className="safety-brand-mark">P</span><span>PulseTrack<small>Live local context</small></span></Link><nav aria-label="Main navigation"><Link className="current" to="/">Live safety</Link><Link to="/insights">Civic insights</Link><Link to="/snapstats">Snapstats</Link></nav></header>
+    <header className="safety-header"><Link to="/" className="safety-brand">PulseTrack<span>Community reports</span></Link><nav aria-label="Main navigation"><Link className="current" aria-current="page" to="/">Reports</Link><Link to="/insights">Civic insights</Link><Link to="/snapstats">Snapstats</Link></nav></header>
     <main className="safety-main">
-      <section className="safety-intro"><div><p className="safety-eyebrow"><span className="safety-live-dot" /> Community reports · Live updates</p><h1>Know what’s happening nearby.</h1><p>See recent community safety reports, understand the local context, and decide what to verify next.</p></div><div className="safety-intro-actions"><button type="button" className="safety-location-button" onClick={locate}>◎ {nearbyOnly ? "Refresh my location" : "Use my location"}</button>{reportingAvailable && <button type="button" className="safety-primary-button" onClick={() => setShowReport(true)}>+ Report an incident</button>}</div></section>
-      <div className="safety-disclaimer">Community reports may be unconfirmed. For immediate danger, contact local emergency services directly.</div>
-      <section className="safety-workspace" aria-label="Live incident feed and map">
-        <div className={`safety-feed ${mobileView === "map" ? "safety-mobile-hidden" : ""}`}>
-            <div className="safety-feed-head"><div><p className="safety-eyebrow">Last 24 hours</p><h2>Incident feed</h2></div><span className="safety-count">{filtered.length} shown</span></div>
-          <label className="safety-search"><span aria-hidden="true">⌕</span><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Search reports or areas" aria-label="Search reports or areas" /></label>
-          <div className="safety-filters" aria-label="Filter reports by category">{filters.map(item => <button key={item} type="button" className={category === item ? "selected" : ""} onClick={() => setCategory(item)}>{item === "all" ? "All" : categoryNames[item]}</button>)}</div>
+      <section className="safety-intro"><div><p className="safety-eyebrow">Local awareness</p><h1>Community reports</h1><p>Browse incidents shared in the last 24 hours. Reports update as new information is made public.</p></div><div className="safety-intro-actions"><button type="button" className="safety-location-button" onClick={locate}>{nearbyOnly ? "Update location" : "Near me"}</button>{reportingAvailable && <button type="button" className="safety-primary-button" onClick={() => setShowReport(true)}>Report an incident</button>}</div></section>
+      <div className="safety-disclaimer"><strong>Before you act</strong><span>Community reports may be unconfirmed. For immediate danger, contact local emergency services.</span></div>
+      {publicLocationCount > 0 && <div className="safety-mobile-tabs" role="group" aria-label="Choose feed or map"><button type="button" aria-pressed={mobileView === "feed"} className={mobileView === "feed" ? "selected" : ""} onClick={() => setMobileView("feed")}>Report list</button><button type="button" aria-pressed={mobileView === "map"} className={mobileView === "map" ? "selected" : ""} onClick={() => setMobileView("map")}>Map</button></div>}
+      <section className={`safety-workspace ${publicLocationCount === 0 ? "safety-no-map" : ""}`} aria-label="Live incident feed and map">
+        <div className={`safety-feed ${mobileView === "map" && publicLocationCount > 0 ? "safety-mobile-hidden" : ""}`}>
+          <div className="safety-feed-head"><div><p className="safety-eyebrow">Last 24 hours</p><h2>Latest reports</h2></div><span className="safety-count">{filtered.length} {filtered.length === 1 ? "report" : "reports"}</span></div>
+          {incidents.length > 0 && <div className="safety-tools"><label className="safety-search"><span className="safety-control-label">Search</span><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Area or keyword" aria-label="Search reports or areas" /></label><label className="safety-category"><span className="safety-control-label">Category</span><select value={category} onChange={event => setCategory(event.target.value as "all" | IncidentCategory)}>{filters.map(item => <option key={item} value={item}>{item === "all" ? "All categories" : categoryNames[item]}</option>)}</select></label></div>}
           {locationMessage && <p className="safety-location-message" role="status">{locationMessage} {nearbyOnly && <button onClick={() => { setNearbyOnly(false); setLocationMessage("") }}>Show all</button>}</p>}
-          {error ? <div className="safety-empty" role="alert"><h3>Reports are unavailable</h3><p>{error}</p></div> : loading ? <div className="safety-empty"><p>Connecting to the live feed…</p></div> : filtered.length === 0 ? <div className="safety-empty"><h3>{incidents.length === 0 ? "No reports in the last 24 hours" : "No reports in this view"}</h3><p>{incidents.length === 0 ? "The live feed is connected. Check back for new community reports." : "Try another category, search, or area."}</p></div> : <div className="safety-list">{filtered.map(incident => <button type="button" key={incident.id} className="safety-incident" onClick={() => selectIncident(incident.id)}><div className="safety-incident-top"><span className={`safety-severity severity-${incident.severity.toLowerCase()}`}>{incident.severity}</span><span>{timeLabel(incident.reportedAt)}</span></div><h3>{incident.title}</h3><p>{incident.summary}</p><div className="safety-incident-meta"><span>{categoryNames[incident.category]}</span><span>·</span><span>{incident.neighborhood}</span>{incident.locationPending && <span className="safety-private-location">Location withheld</span>}</div></button>)}</div>}
-          <p className="safety-feed-note">Showing reports from the last 24 hours among the 150 latest public reports. This is a live snapshot, not a complete area history. Locations withheld by the privacy policy appear only in the feed.</p>
+          {error ? <div className="safety-empty" role="alert"><h3>Reports are unavailable</h3><p>{error}</p></div> : loading ? <div className="safety-empty"><p>Loading recent reports…</p></div> : filtered.length === 0 ? <div className="safety-empty"><h3>{incidents.length === 0 ? "No recent reports" : "No matching reports"}</h3><p>{incidents.length === 0 ? "No public reports have been shared in the last 24 hours. New reports will appear here." : "Try a different search or category, or show all areas."}</p>{incidents.length > 0 && <button type="button" className="safety-clear-button" onClick={() => { setSearch(""); setCategory("all"); setNearbyOnly(false); setLocationMessage("") }}>Clear filters</button>}</div> : <div className="safety-list">{filtered.map(incident => <button type="button" key={incident.id} className="safety-incident" onClick={() => selectIncident(incident.id)}><div className="safety-incident-top"><span className={`safety-severity severity-${incident.severity.toLowerCase()}`}>{incident.severity}</span><span>{timeLabel(incident.reportedAt)}</span></div><h3>{incident.title}</h3><p>{incident.summary}</p><div className="safety-incident-meta"><span>{categoryNames[incident.category]}</span><span>·</span><span>{incident.neighborhood}</span>{incident.locationPending && <span className="safety-private-location">Location withheld</span>}</div></button>)}</div>}
+          <p className="safety-feed-note">Shows up to 150 public reports from the last 24 hours. This is not a complete history; some locations are hidden for privacy.</p>
         </div>
-        <div className={`safety-map-panel ${mobileView === "feed" ? "safety-mobile-hidden" : ""}`}><div className="safety-map-head"><div><p className="safety-eyebrow">Location view</p><h2>Community map</h2></div><span>{filtered.filter(item => !item.locationPending).length} public pins</span></div><div className="safety-map-wrap"><SafetyMap incidents={filtered} center={center} onSelect={selectIncident} visible={mobileView === "map"} />{filtered.every(item => item.locationPending) && !loading && !error && <p className="safety-map-empty">No public map locations from the last 24 hours.</p>}</div><div className="safety-map-foot">Pins show public approximate locations. Some reports stay off the map until the privacy threshold is met.</div></div>
+        {publicLocationCount > 0 && <div className={`safety-map-panel ${mobileView === "feed" ? "safety-mobile-hidden" : ""}`}><div className="safety-map-head"><div><p className="safety-eyebrow">Location view</p><h2>Map</h2></div><span>{publicLocationCount} public {publicLocationCount === 1 ? "location" : "locations"}</span></div><div className="safety-map-wrap"><SafetyMap incidents={filtered} center={center} onSelect={selectIncident} visible={mobileView === "map"} /></div><div className="safety-map-foot">Map pins use approximate public locations. Some reports stay off the map to protect privacy.</div></div>}
       </section>
-      <div className="safety-mobile-tabs" role="group" aria-label="Choose feed or map"><button className={mobileView === "feed" ? "selected" : ""} onClick={() => setMobileView("feed")}>Feed</button><button className={mobileView === "map" ? "selected" : ""} onClick={() => setMobileView("map")}>Map</button></div>
     </main>
-    <footer className="safety-footer"><span>PulseTrack · Community awareness</span><span>PulseTrackr brings the iPhone safety experience to the web.</span></footer>
+    <footer className="safety-footer"><span>PulseTrack</span><span>Community reports for local awareness</span></footer>
     {showReport && <ReportDialog onClose={() => setShowReport(false)} onCreated={id => navigate(`/incident/${encodeURIComponent(id)}`)} />}
   </div>
 }

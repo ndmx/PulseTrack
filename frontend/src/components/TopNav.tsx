@@ -1,45 +1,13 @@
-import React from "react"
 import { Link, useLocation } from "react-router-dom"
 
-function isActivePath(currentPath: string, target: string): boolean {
-  if (target === "/pulsetrack") {
-    return currentPath.startsWith("/pulsetrack") || currentPath.startsWith("/insights")
-  }
-  return currentPath.startsWith(target)
-}
-
 export default function TopNav() {
-  const location = useLocation()
-  const path = location.pathname
+  const path = useLocation().pathname
+  const active = path.startsWith("/snapstats") ? "snapstats" : path.startsWith("/insights") || path.startsWith("/pulsetrack") ? "insights" : "reports"
 
-  const baseStyle: React.CSSProperties = {
-    padding: "8px 14px",
-    borderRadius: 9999,
-    border: "1px solid #CED4DA",
-    textDecoration: "none",
-    fontWeight: 600,
-  }
-
-  const activeStyle: React.CSSProperties = {
-    ...baseStyle,
-    background: "#0D6EFD",
-    color: "#fff",
-    borderColor: "#0D6EFD",
-  }
-
-  const inactiveStyle: React.CSSProperties = {
-    ...baseStyle,
-    background: "#F8F9FA",
-    color: "#212529",
-  }
-
-  return (
-    <nav style={{ display: "flex", gap: 12, marginBottom: 16 }}>
-      <Link to="/" style={path === "/" || path.startsWith("/safety") ? activeStyle : inactiveStyle}>Live safety</Link>
-      <Link to="/insights" style={isActivePath(path, "/pulsetrack") ? activeStyle : inactiveStyle}>Civic insights</Link>
-      <Link to="/snapstats" style={isActivePath(path, "/snapstats") ? activeStyle : inactiveStyle}>Snapstats</Link>
-    </nav>
-  )
+  return <nav className="section-nav" aria-label="Main navigation">
+    <Link className="section-brand" to="/">PulseTrack</Link>
+    <Link className={active === "reports" ? "current" : ""} aria-current={active === "reports" ? "page" : undefined} to="/">Reports</Link>
+    <Link className={active === "insights" ? "current" : ""} aria-current={active === "insights" ? "page" : undefined} to="/insights">Civic insights</Link>
+    <Link className={active === "snapstats" ? "current" : ""} aria-current={active === "snapstats" ? "page" : undefined} to="/snapstats">Snapstats</Link>
+  </nav>
 }
-
-

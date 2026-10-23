@@ -26,14 +26,12 @@ const formatPercent = (value?: number) => {
 
 const partyColor = (p?: string) => {
   const k = String(p || "").toLowerCase()
-  if (k.includes("apc")) return "#E53935"
-  if (k.includes("pdp")) return "#00A86B"
-  if (k.includes("lp") || k.includes("labour")) return "#DC143C"
-  if (k.includes("nnpp")) return "#0D6EFD"
-  return "#9E9E9E"
+  if (k.includes("apc")) return "#b4544f"
+  if (k.includes("pdp")) return "#3d8064"
+  if (k.includes("lp") || k.includes("labour")) return "#a55b6f"
+  if (k.includes("nnpp")) return "#4e7390"
+  return "#78746e"
 }
-
-type PipelineState = "live" | "syncing" | "degraded"
 
 export default function App() {
   const trends = useTrendsAllTime()
@@ -61,7 +59,7 @@ export default function App() {
 
   const registrationRate = nationalRollup.votingAgePopulation
     ? (nationalRollup.registeredVoters / nationalRollup.votingAgePopulation) * 100
-    : 0
+    : undefined
 
   const heroMetrics = useMemo(
     () => [
@@ -72,12 +70,12 @@ export default function App() {
       },
       {
         label: "Registered voters in scope",
-        value: formatLargeNumber(nationalRollup.registeredVoters),
+        value: demoRows.length ? formatLargeNumber(nationalRollup.registeredVoters) : "—",
         helper: "latest synced snapshot",
       },
       {
         label: "Population coverage",
-        value: formatLargeNumber(nationalRollup.totalPopulation),
+        value: demoRows.length ? formatLargeNumber(nationalRollup.totalPopulation) : "—",
         helper: "across all uploaded states",
       },
       {
@@ -114,32 +112,6 @@ export default function App() {
   const stateOptions = useMemo(
     () => demoRows.map((r) => String(r.state || "")).filter(Boolean).sort((a, b) => a.localeCompare(b)),
     [demoRows]
-  )
-
-  const pipelineStatuses = useMemo(
-    () =>
-      [
-        {
-          label: "Approval trends feed",
-          state: trends.isError ? ("degraded" as PipelineState) : trends.isLoading ? ("syncing" as PipelineState) : ("live" as PipelineState),
-          detail: trends.isError
-            ? "Firestore query interrupted — retrying"
-            : trends.isLoading
-              ? "Pulling latest monthly buckets"
-              : "Hourly aggregation healthy",
-        },
-        {
-          label: "Demographics dataset",
-          state: demo.isError ? ("degraded" as PipelineState) : demo.isLoading ? ("syncing" as PipelineState) : ("live" as PipelineState),
-          detail: demo.isError ? "Check Snapstats sync job" : demo.isLoading ? "Loading state profiles" : "Static assets in sync",
-        },
-        {
-          label: "Submission intake",
-          state: "live" as PipelineState,
-          detail: "HTTPS function protected by API key",
-        },
-      ] as Array<{ label: string; state: PipelineState; detail: string }>,
-    [demo.isError, demo.isLoading, trends.isError, trends.isLoading]
   )
 
   const handleScrollToOpinion = () => {
@@ -206,18 +178,18 @@ export default function App() {
       <header className="hero-band hero-band--pulse">
         <div className="container hero-inner">
           <div className="hero-content">
-            <p className="eyebrow">Realtime civic intelligence</p>
-            <h1>Gauge Nigeria&apos;s pulse in one place</h1>
-            <p className="hero-lede">
-              PulseTrack blends grassroots submissions, ETL scoring, and Snapstats depth so teams can react faster without hopping between tools.
-            </p>
             <TopNav />
+            <p className="eyebrow">Nigeria · Civic data</p>
+            <h1>Civic insights</h1>
+            <p className="hero-lede">
+              Explore approval trends, public sentiment, and state demographics in one place.
+            </p>
             <div className="hero-actions">
               <button type="button" className="btn btn-primary" onClick={handleScrollToOpinion}>
-                Share your opinion
+                Share an opinion
               </button>
               <a className="btn btn-ghost" href="#demographics">
-                Explore demographics
+                View state data
               </a>
             </div>
             <div className="hero-metrics">
@@ -234,7 +206,7 @@ export default function App() {
             <header className="section-heading compact">
               <div>
                 <p className="section-eyebrow">Current approval</p>
-                <h2>Updated {dayjs().format("MMM D, YYYY")}</h2>
+                <h2>Approval snapshot</h2>
               </div>
             </header>
             {trends.isLoading && <p className="muted">Loading approval insights…</p>}
@@ -295,10 +267,10 @@ export default function App() {
             <section className="panel">
               <header className="section-heading">
                 <div>
-                  <p className="section-eyebrow">Sentiment &amp; narrative</p>
-                  <h2>How supporters feel right now</h2>
+                  <p className="section-eyebrow">Public sentiment</p>
+                  <h2>Public sentiment</h2>
                 </div>
-                <span className="section-note">Refreshed hourly</span>
+                <span className="section-note">Latest available data</span>
               </header>
               <div className="split-grid">
                 <div className="panel-subcard">
@@ -333,9 +305,9 @@ export default function App() {
                         <YAxis domain={[0, 100]} />
                         <Tooltip />
                         <Legend verticalAlign="bottom" align="center" wrapperStyle={{ paddingTop: 8 }} />
-                        <Line name="Tinubu" type="monotone" dataKey="tinubu" stroke="#007BFF" dot={false} connectNulls />
-                        <Line name="Obi" type="monotone" dataKey="obi" stroke="#008753" dot={false} connectNulls />
-                        <Line name="Atiku" type="monotone" dataKey="atiku" stroke="#DC3545" dot={false} connectNulls />
+                        <Line name="Tinubu" type="monotone" dataKey="tinubu" stroke="#4e7390" dot={false} connectNulls />
+                        <Line name="Obi" type="monotone" dataKey="obi" stroke="#3d8064" dot={false} connectNulls />
+                        <Line name="Atiku" type="monotone" dataKey="atiku" stroke="#b4544f" dot={false} connectNulls />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
@@ -346,7 +318,7 @@ export default function App() {
             <section className="panel" id="demographics">
               <header className="section-heading">
                 <div>
-                  <p className="section-eyebrow">State intelligence</p>
+                  <p className="section-eyebrow">State data</p>
                   <h2>Demographics &amp; voter strength</h2>
                 </div>
                 <span className="section-note">Synced nightly</span>
@@ -422,11 +394,11 @@ export default function App() {
                       <div className="demo-summary">
                         <div>
                           <span className="metric-label">Total population</span>
-                          <strong className="metric-value">{formatLargeNumber(nationalRollup.totalPopulation)}</strong>
+                          <strong className="metric-value">{demoRows.length ? formatLargeNumber(nationalRollup.totalPopulation) : "—"}</strong>
                         </div>
                         <div>
                           <span className="metric-label">Registered voters</span>
-                          <strong className="metric-value">{formatLargeNumber(nationalRollup.registeredVoters)}</strong>
+                          <strong className="metric-value">{demoRows.length ? formatLargeNumber(nationalRollup.registeredVoters) : "—"}</strong>
                         </div>
                         <div>
                           <span className="metric-label">Registration rate</span>
@@ -470,8 +442,8 @@ export default function App() {
             <section className="panel" id="snapstats">
               <header className="section-heading">
                 <div>
-                  <p className="section-eyebrow">Nationwide intelligence</p>
-                  <h2>Snapstats deep dive</h2>
+                  <p className="section-eyebrow">State explorer</p>
+                  <h2>Explore state data</h2>
                 </div>
                 <span className="section-note">Map, tables, and zone analytics</span>
               </header>
@@ -483,38 +455,17 @@ export default function App() {
             <section className="panel sticky-panel" ref={opinionRef}>
               <header className="section-heading">
                 <div>
-                  <p className="section-eyebrow">Community channel</p>
+                  <p className="section-eyebrow">Your view</p>
                   <h2>Share your opinion</h2>
                 </div>
                 <span className="section-note">Takes 60 seconds</span>
               </header>
-              <p className="muted">
-                Every submission is sanitized, geotagged, and routed through the secure HTTPS function before it feeds the ETL. Add your voice and help keep the signal fresh.
-              </p>
+              <p className="muted">Share your view on a candidate. Submissions may be included in the aggregate results.</p>
               <div className="opinion-form">
                 <SubmitOpinion />
               </div>
             </section>
 
-            <section className="panel">
-              <header className="section-heading">
-                <div>
-                  <p className="section-eyebrow">Ops glance</p>
-                  <h2>Data pipeline health</h2>
-                </div>
-              </header>
-              <ul className="status-list">
-                {pipelineStatuses.map((item) => (
-                  <li key={item.label}>
-                    <div>
-                      <strong>{item.label}</strong>
-                      <p className="muted">{item.detail}</p>
-                    </div>
-                    <span className={`status-pill status-${item.state}`}>{item.state}</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
           </aside>
         </div>
       </main>
